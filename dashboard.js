@@ -38,6 +38,17 @@
   const content = root.querySelector('#wizard-content');
   function renderStep(){ const s=steps[state.step-1]; root.querySelector('#step-label').textContent=`Step ${state.step} of 4`;root.querySelector('#step-percent').textContent=`${state.step*25}%`;root.querySelector('#progress-bar').style.width=`${state.step*25}%`;content.innerHTML=`<div class="app-kicker">Design direction</div><h2>${s.title}</h2><p class="wizard-copy">${s.copy}</p>${s.html()}`;bindStep();root.querySelector('#wizard-back').disabled=state.step===1;root.querySelector('#wizard-next').textContent=state.step===4?'Generate my design system →':'Next →';}
   function bindStep(){content.querySelectorAll('[data-platform]').forEach(b=>b.onclick=()=>{state.platform=b.dataset.platform;renderStep()});content.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.styles=state.styles.includes(b.dataset.style)?state.styles.filter(x=>x!==b.dataset.style):[...state.styles,b.dataset.style];renderStep()});const desc=content.querySelector('#project-description');if(desc)desc.oninput=()=>{state.description=desc.value;content.querySelector('#char-count').textContent=`${desc.value.length}/300`};const custom=content.querySelector('#custom-style-input');if(custom)custom.oninput=()=>state.custom=custom.value;content.querySelectorAll('[data-color-index]').forEach(i=>i.oninput=()=>{state.colors[i.dataset.colorIndex]=i.value;renderStep()});content.querySelectorAll('[data-hex-index]').forEach(i=>i.onchange=()=>{if(/^#[0-9a-f]{6}$/i.test(i.value)){state.colors[i.dataset.hexIndex]=i.value;renderStep()}else{i.value=state.colors[i.dataset.hexIndex]}});const suggest=content.querySelector('#suggest-palette');if(suggest)suggest.onclick=()=>{state.colors=['#111111','#e6e6e1','#3854ef'];renderStep()};}
+  window.DSGenDashboard = {
+    root,
+    showView,
+    registerView(view) { views.push(view); },
+    getWizardState() { return JSON.parse(JSON.stringify(state)); },
+    setWizardState(values) {
+      Object.assign(state, values);
+      state.step = 1;
+      renderStep();
+    },
+  };
   root.querySelector('#wizard-next').onclick=()=>{if(state.step<4){state.step++;renderStep()}else{showView('loading');setTimeout(()=>showView('workspace'),10000+Math.random()*5000)}};root.querySelector('#wizard-back').onclick=()=>{if(state.step>1){state.step--;renderStep()}};
   root.querySelectorAll('[data-device]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-device]').forEach(x=>x.classList.remove('active'));b.classList.add('active');root.querySelector('#preview-device').className=`preview-device ${b.dataset.device}`});
   root.querySelectorAll('[data-token]').forEach(i=>i.oninput=()=>{const color=i.value;root.querySelector(`.swatch-edit input[data-token="${i.dataset.token}"] + span`).style.background=color;root.querySelector('#preview-device').style.setProperty(`--preview-${i.dataset.token}`,color)});

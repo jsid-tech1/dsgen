@@ -1,5 +1,5 @@
 import { getFirebaseServices, sessionCookieHeader } from "../../lib/firebase-admin.js";
-import { isTrustedOrigin, sendJson, requireMethod } from "../../lib/http.js";
+import { isTrustedOrigin, logSafeError, readJsonBody, requireJsonContentType, sendJson, sendError, requireMethod } from "../../lib/http.js";
 import { ServerValue } from "firebase-admin/database";
 
 const sessionDurationMs = 5 * 24 * 60 * 60 * 1000;
@@ -10,8 +10,11 @@ export default async function handler(request, response) {
     return;
   }
   if (!isTrustedOrigin(request)) {
-    return sendJson(response, 403, { error: "This sign-in request is not allowed." });
+    return sendError(response, 403, "This sign-in request is not allowed.");
   }
+  if (!requireJsonContentType(request, response)) return;
+  const body = readJsonBody(request, response, 16 * 1024);
+  if (!body) return;
 
   const apiKey = process.env.FIREBASE_WEB_API_KEY;
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -19,7 +22,7 @@ export default async function handler(request, response) {
     return sendJson(response, 503, { error: "Google sign-in is not configured on the server." });
   }
 
-  const credential = request.body?.credential;
+  const credential = body.credential;
   if (
     typeof credential !== "string" ||
     credential.length > 12000 ||
@@ -43,11 +46,7 @@ export default async function handler(request, response) {
       },
     );
     if (!firebaseResponse.ok) {
-      const error = await firebaseResponse.json().catch(() => ({}));
-      console.error("Firebase rejected Google sign-in.", {
-        status: firebaseResponse.status,
-        code: error.error?.message ?? "unknown",
-      });
+      console.error("[google-sign-in] firebase-rejected");
       return sendJson(response, 401, {
         error: "Google sign-in could not be verified. Check that Google is enabled in Firebase Authentication.",
       });
@@ -105,7 +104,7 @@ export default async function handler(request, response) {
       user: { uid: decodedToken.uid, email, name, photoURL },
     });
   } catch (error) {
-    console.error("Server-side Google sign-in failed.", error);
+    logSafeError("google-sign-in", error);
     return sendJson(response, 500, { error: "Sign-in failed due to a server error. Please try again." });
   }
 }

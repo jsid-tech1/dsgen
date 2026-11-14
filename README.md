@@ -1,72 +1,75 @@
-# Forma
+# DSGen
 
-A responsive landing page for a design-system builder that helps designers create
-tokens and components, then bring their system into Figma.
+DSGen is a single-page design-system builder. The landing page is in `index.html`; the signed-in dashboard and its views are built by `dashboard.js`. Community is added as further dashboard views by `community.js` and uses the same sidebar and shared dashboard classes.
 
-## Server-side sign in and Firebase
+## Authentication and server access
 
-Google Identity Services returns a Google ID token to the browser. The browser
-sends it to `/api/auth/google`; the Vercel Function exchanges it with Firebase
-Authentication, saves the profile to Realtime Database using Firebase Admin,
-and creates a five-day `HttpOnly`, `SameSite=Lax` session cookie. Session
-verification and sign-out also happen through same-origin API functions.
+The current page signs users in through Firebase Authentication in the browser. Requests to private system APIs send the user's Firebase ID token in an `Authorization: Bearer` header. Each private API verifies that token server-side with Firebase Admin and derives ownership from the verified UID. The UID is never accepted from request data.
 
-The Firebase Web API key and service-account credential are no longer included in
-`index.html` or browser JavaScript. The Google OAuth client ID is returned by
-`/api/config`; OAuth client IDs are public identifiers, not secrets.
+`lib/firebase-admin.js` is server-only. Keep its service account JSON and private key in Vercel environment variables only. The Firebase Web API key, OAuth client ID, and app identifiers in browser configuration are public Firebase/Google client configuration; they do not grant database access. Do not treat them as secrets or as authorization.
 
-### Configure Vercel
+The `/api/auth/*` server session functions remain in the repository for the existing server-session flow, but the current page's browser Firebase Auth does not call them. Community/system APIs use Firebase ID token verification. Do not mix these mechanisms when adding protected routes.
 
-Add these environment variables in the Vercel project settings for each
-deployment environment:
+## Data locations
 
-| Variable | Value |
+- Private systems: `users/{verifiedUid}/systems/{systemId}`.
+- Published Community projections: `publicSystems/{systemId}`.
+- Public creator names and published-system indexes: `publicCreators/{opaqueCreatorId}`.
+- Source attribution for copies is retained in the private record and, when republished, in a limited `copiedFrom` public field.
+
+Realtime Database rules in `database.rules.json` deny all direct client reads and writes. The `indexOn` entries only support server query performance and do not grant access. Firebase Admin API operations bypass those rules, so API token verification and ownership checks are mandatory. Rules are not automatically deployed by Vercel; publish and verify them in Firebase Console or with Firebase CLI.
+
+## System and Community APIs
+
+Private APIs require a valid Firebase ID token:
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/systems` | `GET` | List the signed-in user's systems |
+| `/api/systems` | `POST` | Save a new private system |
+| `/api/systems/item?id=...` | `GET` | Load a system owned by the signed-in user |
+| `/api/systems/item?id=...` | `PUT` | Update a system owned by the signed-in user |
+| `/api/systems/item?id=...` | `DELETE` | Delete a system owned by the signed-in user |
+| `/api/systems/publish` | `POST` | Publish an owned system after client review/confirmation |
+| `/api/systems/unpublish` | `POST` | Unpublish an owned system |
+| `/api/community/copy` | `POST` | Create a private independent copy of a published system |
+
+Public Community endpoints read only the allowlisted projection under `publicSystems`; they do not read a user's private systems or account profile:
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/community/gallery` | `GET` | Return up to 100 published systems |
+| `/api/community/system?id=...` | `GET` | Return one published system |
+| `/api/community/creator?id=...` | `GET` | Return a public creator name and published systems |
+
+Public responses exclude email, Firebase UID, private drafts, and server ownership metadata. Publication is explicit and the client presents a review/confirmation step. The server separately verifies ownership before publishing or unpublishing. Copying creates a new record under the current user's UID and does not modify the source.
+
+Request data is bounded and validated. API errors are generic; server logs contain only an event label and safe error code. The rate limiter is best-effort per serverless function instance, not a globally coordinated anti-DDoS service. Vercel/Firebase project-level limits and monitoring should be reviewed before a large public launch.
+
+## Environment variables
+
+Configure these in Vercel for the relevant deployment environments. Do not commit `.env.local` or service credentials.
+
+| Variable | Use |
 | --- | --- |
-| `APP_ORIGIN` | Exact origin, e.g. `https://dsgen.vercel.app` (no trailing slash) |
-| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web client ID configured for the Firebase Google provider |
-| `FIREBASE_WEB_API_KEY` | Firebase Web API key for the `dsgen-8cf88` project |
-| `FIREBASE_DATABASE_URL` | `https://dsgen-8cf88-default-rtdb.asia-southeast1.firebasedatabase.app` |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Full JSON for a service account belonging to the Firebase project |
+| `APP_ORIGIN` | Exact production origin used to validate mutation requests |
+| `GOOGLE_CLIENT_ID` | Google OAuth client identifier |
+| `FIREBASE_WEB_API_KEY` | Firebase Authentication server token exchange configuration |
+| `FIREBASE_DATABASE_URL` | Firebase Realtime Database URL |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Server-only Firebase service account credential JSON |
 
-Keep the service-account JSON private: enter it only in Vercel's encrypted
-environment-variable settings. Do not commit it, put it in `index.html`, or paste
-it into chat. Grant the service account only the permissions the app needs.
+`.gitignore` excludes `.env*`, `.vercel/`, and `node_modules/`; still review Git history and repository secret scanning if credentials may have been committed previously.
 
-The Firebase Web API key is now used only by the server-side token exchange. Keep
-its API restrictions limited to the Firebase APIs needed by the project. Do not
-add HTTP referrer restrictions to this key: the exchange is a server-to-server
-request and has no browser referrer, so that restriction can break sign-in. This
-key identifies the Firebase project; it does not grant database access.
+## Run locally
 
-In Google Cloud Console, configure the OAuth web client with the production
-JavaScript origin `https://dsgen.vercel.app`. Add `http://localhost:8000` as an
-origin when testing locally. In Firebase Authentication, enable Google and add
-the production domain and `localhost` to Authorized domains.
-
-Because only the server uses Firebase Admin, Realtime Database rules deny all
-direct client access. The rules are stored in `database.rules.json`; Admin SDK
-operations run with server credentials and bypass these rules:
-
-Publish them from Firebase Console → Realtime Database → Rules, or deploy this
-file with Firebase CLI after authenticating the CLI to the correct Firebase
-project:
-
-```sh
-npx firebase-tools deploy --only database --project dsgen-8cf88
-```
-
-Verify the rules are published in the Firebase Console. The Vercel deploy does
-not automatically publish Firebase Realtime Database rules.
-
-### Run locally
-
-Install Node.js 20 or later and the dependencies, then run the Vercel development
-server (not a static file server, because sign-in needs the API functions):
+Use Node.js 20 or later. From the repository root:
 
 ```sh
 npm install
+npm test
 npx vercel dev
 ```
 
-Set the environment variables above in Vercel or a local `.env.local` file before
-testing. `.env.local` is git-ignored; never commit credentials.
+Vercel's local server defaults to `http://localhost:3000`. Configure the environment variables above in Vercel/local development, and authorize the local origin with Firebase/Google. The mutation origin helper accepts localhost ports 3000 and 8000 in development. Do not use a static file server; it cannot run the API functions.
+
+The real Community gallery is empty until a signed-in user saves and explicitly publishes a system. No hard-coded public gallery examples are included.

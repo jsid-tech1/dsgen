@@ -3,7 +3,7 @@ import {
   readSessionCookie,
   sessionCookieHeader,
 } from "../../lib/firebase-admin.js";
-import { sendJson, requireMethod } from "../../lib/http.js";
+import { logSafeError, sendJson, requireMethod } from "../../lib/http.js";
 
 export default async function handler(request, response) {
   if (!requireMethod(request, response, "GET")) {
@@ -36,7 +36,7 @@ export default async function handler(request, response) {
       return sendJson(response, 200, { user: null });
     }
 
-    console.error("Firebase session verification failed.", error);
+    logSafeError("firebase-session-verification", error);
     return sendJson(response, 500, { error: "Session verification failed. Please try again." });
   }
 }
