@@ -52,7 +52,7 @@ Configure these in Vercel for the relevant deployment environments. Do not commi
 
 | Variable | Use |
 | --- | --- |
-| `APP_ORIGIN` | Exact production origin used to validate mutation requests |
+| `APP_ORIGIN` | Explicit origin used to validate mutation requests, e.g. `https://dsgen-4gtm.vercel.app`. Vercel production also accepts the project production domain when system environment variables are exposed. |
 | `GOOGLE_CLIENT_ID` | Google OAuth client identifier |
 | `FIREBASE_WEB_API_KEY` | Firebase Authentication server token exchange configuration |
 | `FIREBASE_DATABASE_URL` | Firebase Realtime Database URL |
