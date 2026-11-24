@@ -278,8 +278,10 @@
     renderStep();
   }
 
-  function generateWorkspace() {
-    state.presetId = presets.select(state)?.id;
+  async function generateWorkspace() {
+    await analysisPending;
+    if (!root.querySelector('#app-loading').classList.contains('active')) return;
+    state.presetId = presets.select({ ...state, description: enrichedBrief() })?.id;
     const selected = presets.get(state.presetId);
     state.fontFamily = selected ? presets.suggestedFonts(selected.style)[0] : 'Inter';
     const surface = state.presetId ? presets.mix(state.colors[1], '#ffffff', 0.1) : '#eef0f7';
@@ -299,6 +301,91 @@
     { title: 'Choose your colours', copy: 'Select three colours that represent your brand.', html: () => `<div class="palette-row">${['Primary Colour','Secondary Colour','Accent Colour'].map((x,i)=>`<label class="color-field"><span class="field-label">${x}</span><div class="color-picker"><input type="color" value="${state.colors[i]}" data-color-index="${i}"><strong>${state.colors[i].toUpperCase()}</strong></div><input class="color-hex" value="${state.colors[i]}" maxlength="7" data-hex-index="${i}"></label>`).join('')}</div><button class="app-button ghost suggest-palette" id="suggest-palette">✦ Suggest a palette</button>` }
   ];
   const content = root.querySelector('#wizard-content');
+  let analysisBrief = null;
+  let keywords = [];
+  let analysisPending = Promise.resolve();
+  function enrichedBrief() {
+    return state.description + ' ' + (state.description === analysisBrief ? keywords.join(' ') : '');
+  }
+  function analyzeBrief() {
+    const description = state.description;
+    if (description === analysisBrief) return;
+    analysisBrief = description;
+    keywords = [];
+    analysisPending = (async () => {
+      if (!description.trim()) return;
+      const headers = { 'Content-Type': 'application/json' };
+      if (!localWorkspace) headers.Authorization = 'Bearer ' + await firebaseAuth.currentUser.getIdToken();
+      const result = await fetch('/api/project-keywords', {
+        method: 'POST', headers, body: JSON.stringify({ description }), signal: AbortSignal.timeout(6500),
+      });
+      if (!result.ok) return;
+      const data = await result.json();
+      if (description === analysisBrief && Array.isArray(data.keywords)) {
+        keywords = data.keywords;
+        if (state.step === 4 && content.querySelector('#palette-options')) drawPalettes();
+      }
+    })().catch(() => {});
+  }
+  function paletteHue() {
+    const brief = enrichedBrief().toLowerCase();
+    const moods = [
+      [/\b(calm|mindful|relaxing|wellness|nature|meditation|yoga)\b/, 162],
+      [/\b(energetic|fitness|sport|workout|food|restaurant)\b/, 17],
+      [/\b(luxury|elegant|premium)\b/, 36],
+      [/\b(fun|playful|kids|social|music|gaming)\b/, 285],
+      [/\b(trust|finance|banking|medical|health|enterprise)\b/, 215],
+    ];
+    return moods.find(([pattern]) => pattern.test(brief))?.[1] ??
+      Array.from(brief.trim()).reduce((hash, ch) => (hash * 31 + ch.charCodeAt(0)) % 360, 215);
+  }
+  function paletteColor(hue, saturation, lightness) {
+    const a = saturation * Math.min(lightness, 1 - lightness);
+    return '#' + [0, 8, 4].map(offset => {
+      const k = (offset + (hue + 360) / 30) % 12;
+      const value = lightness - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+      return Math.round(255 * value).toString(16).padStart(2, '0');
+    }).join('');
+  }
+  function drawPalettes() {
+    const box = content.querySelector('#palette-options');
+    box.replaceChildren();
+    const hue = paletteHue();
+    for (const [name, offset] of [['Tonal', 20], ['Analogous', 55], ['Contrasting', 165]]) {
+      const h = hue + Math.random() * 32 - 16;
+      const colors = [paletteColor(h, .58, .29 + Math.random() * .13),
+        paletteColor(h + 18, .38, .72 + Math.random() * .13), paletteColor(h + offset, .76, .48 + Math.random() * .1)];
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'app-button ghost';
+      button.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin:4px;padding:8px';
+      button.textContent = name;
+      button.title = colors.join(' · ');
+      for (const color of colors) {
+        const chip = document.createElement('span');
+        chip.style.cssText = 'width:15px;height:15px;border-radius:50%;background:' + color;
+        button.append(chip);
+      }
+      button.onclick = () => {
+        state.colors = colors.slice();
+        content.querySelectorAll('[data-color-index]').forEach((picker, i) => {
+          picker.value = colors[i];
+          picker.dispatchEvent(new Event('input'));
+        });
+      };
+      box.append(button);
+    }
+  }
+  function bindPaletteSuggestions(button) {
+    const box = document.createElement('div');
+    box.id = 'palette-options';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Suggested palettes');
+    button.after(box);
+    analyzeBrief();
+    drawPalettes();
+    button.onclick = () => { drawPalettes(); box.firstElementChild.click(); };
+  }
   function renderStep(){ const s=steps[state.step-1]; root.querySelector('#step-label').textContent=`Step ${state.step} of 4`;root.querySelector('#step-percent').textContent=`${state.step*25}%`;root.querySelector('#progress-bar').style.width=`${state.step*25}%`;content.innerHTML=`<div class="app-kicker">Design direction</div><h2>${s.title}</h2><p class="wizard-copy">${s.copy}</p>${s.html()}`;const custom = content.querySelector('#custom-style-input');
     const description = content.querySelector('#project-description');
     if (custom) custom.value = state.custom;
@@ -319,7 +406,7 @@
       picker.onchange = sync;
     }
   }
-  function bindStep(){content.querySelectorAll('[data-platform]').forEach(b=>b.onclick=()=>{state.platform=b.dataset.platform;renderStep()});content.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.styles=state.styles.includes(b.dataset.style)?state.styles.filter(x=>x!==b.dataset.style):[...state.styles,b.dataset.style];renderStep()});const desc=content.querySelector('#project-description');if(desc)desc.oninput=()=>{state.description=desc.value;content.querySelector('#char-count').textContent=`${desc.value.length}/300`};const custom=content.querySelector('#custom-style-input');if(custom)custom.oninput=()=>state.custom=custom.value;bindColorPickers();content.querySelectorAll('[data-hex-index]').forEach(i=>i.onchange=()=>{if(/^#[0-9a-f]{6}$/i.test(i.value)){state.colors[i.dataset.hexIndex]=i.value;renderStep()}else{i.value=state.colors[i.dataset.hexIndex]}});const suggest=content.querySelector('#suggest-palette');if(suggest)suggest.onclick=()=>{state.colors=['#111111','#e6e6e1','#3854ef'];renderStep()};}
+  function bindStep(){content.querySelectorAll('[data-platform]').forEach(b=>b.onclick=()=>{state.platform=b.dataset.platform;renderStep()});content.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.styles=state.styles.includes(b.dataset.style)?state.styles.filter(x=>x!==b.dataset.style):[...state.styles,b.dataset.style];renderStep()});const desc=content.querySelector('#project-description');if(desc)desc.oninput=()=>{state.description=desc.value;content.querySelector('#char-count').textContent=`${desc.value.length}/300`};const custom=content.querySelector('#custom-style-input');if(custom)custom.oninput=()=>state.custom=custom.value;bindColorPickers();content.querySelectorAll('[data-hex-index]').forEach(i=>i.onchange=()=>{if(/^#[0-9a-f]{6}$/i.test(i.value)){state.colors[i.dataset.hexIndex]=i.value;renderStep()}else{i.value=state.colors[i.dataset.hexIndex]}});const suggest=content.querySelector('#suggest-palette');if(suggest)bindPaletteSuggestions(suggest);}
   window.DSGenDashboard = {
     root,
     showView,

@@ -16,6 +16,7 @@ for (const folder of Object.values(folders)) mkdirSync(folder, { recursive: true
 
 const staticFiles = new Set(["/index.html", "/auth-ui.js", "/design-presets.js", "/dashboard.js", "/community.js", "/dashboard-enhancements.js"]);
 const methods = new Map([
+  ["/api/project-keywords", ["POST"]],
   ["/api/systems", ["GET", "POST"]],
   ["/api/systems/item", ["GET", "PUT", "DELETE"]],
   ["/api/systems/publish", ["POST"]],
@@ -90,7 +91,12 @@ async function readRequest(request, response) {
   return readJsonBody(request, response);
 }
 
-function handleApi(request, response, url, body) {
+async function handleApi(request, response, url, body) {
+  if (url.pathname === "/api/project-keywords") {
+    if (typeof body.description !== "string" || body.description.length > 300) return sendError(response, 400);
+    const { projectKeywords } = await import("../lib/project-keywords.js");
+    return sendJson(response, 200, { keywords: await projectKeywords(body.description) });
+  }
   const path = url.pathname;
   const method = request.method;
   if (path === "/api/community/gallery") return sendJson(response, 200, { systems: publishedSystems() });
@@ -167,7 +173,7 @@ createServer(async (request, response) => {
       const hasBody = ["POST", "PUT"].includes(request.method);
       const body = hasBody ? await readRequest(request, response) : null;
       if (hasBody && !body) return;
-      return handleApi(request, response, url, body);
+      return await handleApi(request, response, url, body);
     }
 
     const path = ["/", "/community"].includes(url.pathname) ? "/index.html" : url.pathname;
