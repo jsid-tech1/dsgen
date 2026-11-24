@@ -12,6 +12,13 @@
     .public-community .app-shell{display:block;min-height:0}
     .public-community .app-sidebar{display:none}
     .public-community .app-main{width:min(100%,1240px);margin:auto;min-height:65vh}
+    .system-title-button{display:inline-flex;align-items:center;gap:.3em;text-align:left;background:none;color:inherit;border:0;padding:0;font:inherit;letter-spacing:inherit;cursor:pointer;overflow-wrap:anywhere}
+    .system-title-button:hover{text-decoration:underline;text-underline-offset:.12em}
+    .system-title-icon{flex:none;font-size:.45em}
+    .system-title-input{width:100%;min-width:0;font:inherit;letter-spacing:inherit;color:inherit;border:1px solid #777;border-radius:8px;padding:0 8px;background:#fff}
+    .system-title-button[hidden],.system-title-input[hidden]{display:none}
+    .community-toast{position:fixed;z-index:100;bottom:max(20px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);max-width:calc(100% - 32px);width:max-content;pointer-events:none}
+    .community-toast:not(:empty){padding:10px 16px;border-radius:9px;background:#111;color:#fff;font-size:13px;box-shadow:0 3px 16px #0003}
     .community-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 190px 190px;gap:10px;margin:-22px 0 20px}
     .community-toolbar input,.community-toolbar select{height:44px;width:100%;border:1px solid #ddd;border-radius:9px;background:#fff;padding:0 13px;font:inherit;font-size:13px;color:#111}
     .community-filters{display:flex;align-items:center;gap:8px;margin:0 0 18px;overflow:auto}
@@ -126,7 +133,7 @@
   const publishDialog = document.createElement("dialog");
   publishDialog.id = "community-publish-dialog";
   publishDialog.className = "community-review-dialog";
-  publishDialog.innerHTML = `<div class="auth-dialog-head"><div><div class="app-kicker">Review before publishing</div><h2>Publish to Community?</h2></div><button type="button" class="auth-close" data-close-publish aria-label="Close">×</button></div><p class="auth-dialog-copy">Only publish after reviewing the information below. Your system will be visible to anyone visiting Community.</p><div class="community-review-preview" id="community-review-preview"></div><ul class="community-review-list"><li>The system name, project description, selected styles, custom style notes, platform, colors, typography, and available component labels will be public.</li><li>Your Google display name will appear as creator attribution. Your email and private account details are not included.</li><li>Other users can view and create an independent copy. They cannot edit your original.</li></ul><div class="community-dialog-actions"><button type="button" class="app-button ghost" data-close-publish>Cancel</button><button type="button" class="app-button" id="community-confirm-publish">Confirm publish</button></div></div>`;
+  publishDialog.innerHTML = `<div class="auth-dialog-head"><div><div class="app-kicker">Review before publishing</div><h2>Publish to Community?</h2></div><button type="button" class="auth-close" data-close-publish aria-label="Close">×</button></div><p class="auth-dialog-copy">Only publish after reviewing the information below. Your system will be visible to anyone visiting Community.</p><div class="community-review-preview" id="community-review-preview"></div><ul class="community-review-list"><li>The system name, project description, selected styles, custom style notes, platform, colors, typography, and available component labels will be public.</li><li>${localWorkspace ? "This local preview uses Local creator for attribution." : "Your Google display name will appear as creator attribution. Your email and private account details are not included."}</li><li>Other users can view and create an independent copy. They cannot edit your original.</li></ul><p class="community-status" data-publish-status role="status"></p><div class="community-dialog-actions"><button type="button" class="app-button ghost" data-close-publish>Cancel</button><button type="button" class="app-button" id="community-confirm-publish">Confirm publish</button></div></div>`;
   document.body.append(publishDialog);
 
   function navigate(view) {
@@ -231,9 +238,9 @@
   }
 
   async function request(path, { method = "GET", body = undefined, params = {}, publicRead = false } = {}) {
-    const user = firebaseAuth.currentUser;
+    const user = firebaseAuth?.currentUser;
     const headers = {};
-    if (!publicRead) {
+    if (!publicRead && !localWorkspace) {
       if (!user) throw new Error("Sign in to use Community.");
       headers.Authorization = `Bearer ${await user.getIdToken()}`;
     }
@@ -377,7 +384,7 @@
     const copy = make("button", "app-button", "Use this system");
     copy.type = "button";
     copy.addEventListener("click", () => {
-      if (!firebaseAuth.currentUser) {
+      if (!localWorkspace && !firebaseAuth.currentUser) {
         document.querySelector("[data-auth-trigger]").click();
         return;
       }
@@ -420,15 +427,70 @@
     }
   }
 
+  const untitledName = "Untitled design system";
+  const title = root.querySelector("#app-workspace .workspace-header .app-title");
+  const titleButton = make("button", "system-title-button");
+  titleButton.type = "button";
+  const titleText = make("span");
+  const titleIcon = make("span", "system-title-icon", "✎");
+  titleIcon.setAttribute("aria-hidden", "true");
+  titleButton.append(titleText, titleIcon);
+  const titleInput = make("input", "system-title-input");
+  titleInput.type = "text";
+  titleInput.maxLength = 80;
+  titleInput.setAttribute("aria-label", "Design system name");
+  title.replaceChildren(titleButton, titleInput);
+
+  function setEditorName(name) {
+    titleText.textContent = name;
+    titleButton.setAttribute("aria-label", `Rename ${name}`);
+    titleInput.hidden = true;
+    titleButton.hidden = false;
+  }
+
+  function finishRenaming(commit) {
+    if (titleInput.hidden) return;
+    const name = commit ? titleInput.value.trim() : "";
+    setEditorName(name || titleText.textContent);
+  }
+
+  titleButton.addEventListener("click", () => {
+    titleInput.value = titleText.textContent === untitledName ? "" : titleText.textContent;
+    titleInput.placeholder = untitledName;
+    titleButton.hidden = true;
+    titleInput.hidden = false;
+    titleInput.focus();
+    titleInput.select();
+  });
+  titleInput.addEventListener("blur", () => finishRenaming(true));
+  titleInput.addEventListener("keydown", (event) => {
+    if (event.isComposing || !["Enter", "Escape"].includes(event.key)) return;
+    event.preventDefault();
+    finishRenaming(event.key === "Enter");
+    titleButton.focus();
+  });
+  setEditorName(untitledName);
+
+  const toast = make("div", "community-toast");
+  toast.setAttribute("role", "status");
+  document.body.append(toast);
+  let toastTimer;
+
+  function showSuccess(message) {
+    window.clearTimeout(toastTimer);
+    toast.textContent = message;
+    toastTimer = window.setTimeout(() => { toast.textContent = ""; }, 4200);
+  }
+
   function draftFromCurrentEditor() {
     const wizard = dashboard.getWizardState();
     const editorColors = {};
     root.querySelectorAll("#app-workspace [data-token]").forEach((input) => { editorColors[input.dataset.token] = input.value; });
     const description = wizard.description.trim();
-    const name = (description.split(/\s+/).slice(0, 6).join(" ").slice(0, 80) || "Untitled design system");
+    finishRenaming(true);
     return {
       schemaVersion: 1,
-      name,
+      name: titleText.textContent,
       description: description.slice(0, 300),
       wizard: {
         platform: wizard.platform || "web",
@@ -476,14 +538,28 @@
     const devicePreview = root.querySelector("#preview-device");
     if (devicePreview) devicePreview.className = `preview-device ${devices.has(device) ? device : "phone"}`;
     root.querySelectorAll("#app-workspace [data-device]").forEach((button) => button.classList.toggle("active", button.dataset.device === device));
-    const title = root.querySelector("#app-workspace .workspace-header .app-title");
-    if (title) title.textContent = system.name;
+    setEditorName(system.name);
+    ensureWorkspaceStatus().textContent = "";
     dashboard.showView("workspace");
   }
 
   const devices = new Set(["phone", "tablet", "laptop"]);
 
-  async function saveCurrentSystem() {
+  const saveButton = root.querySelector("#app-workspace .workspace-header button[data-app-view]");
+  let pendingSave;
+
+  function saveCurrentSystem() {
+    if (!pendingSave) {
+      saveButton.disabled = true;
+      pendingSave = persistCurrentSystem().finally(() => {
+        pendingSave = null;
+        saveButton.disabled = false;
+      });
+    }
+    return pendingSave;
+  }
+
+  async function persistCurrentSystem() {
     const status = ensureWorkspaceStatus();
     status.textContent = "Saving…";
     try {
@@ -492,11 +568,8 @@
         ? await request("/api/systems/item", { method: "PUT", params: { id: currentSystemId }, body: draft })
         : await request("/api/systems", { method: "POST", body: draft });
       currentSystemId = result.system.id;
-      const title = root.querySelector("#app-workspace .workspace-header .app-title");
-      if (title) title.textContent = result.system.name;
-      status.textContent = "Saved to My systems.";
+      status.textContent = "";
       await refreshOwnedSystems();
-      window.setTimeout(() => { if (status.isConnected) status.textContent = ""; }, 3500);
       return true;
     } catch (error) {
       status.textContent = error.message;
@@ -565,7 +638,7 @@
       const card = make("article", "system-card new");
       card.dataset.startNew = "";
       card.append(make("div", "plus", "＋"), make("h3", "", "Start a new system"), make("p", "", "Answer four quick questions to begin."));
-      card.addEventListener("click", () => { currentSystemId = null; dashboard.showView("new"); });
+      card.addEventListener("click", dashboard.startNew);
       return card;
     };
     [homeGrid, systemsGrid].forEach((grid, index) => {
@@ -628,13 +701,13 @@
 
   function openPublishReview() {
     const draft = draftFromCurrentEditor();
-    const preview = root.querySelector("#community-review-preview");
+    const preview = publishDialog.querySelector("#community-review-preview");
     preview.replaceChildren();
     preview.append(make("strong", "", draft.name), make("p", "", draft.description || "No description"));
     const visual = make("div");
     stylePreview(visual, draft);
     preview.append(visual);
-    publishDialog.dataset.systemId = currentSystemId || "";
+    publishDialog.querySelector("[data-publish-status]").textContent = "";
     publishDialog.showModal();
   }
 
@@ -642,15 +715,17 @@
   publishDialog.querySelector("#community-confirm-publish").addEventListener("click", async () => {
     const status = ensureWorkspaceStatus();
     const button = publishDialog.querySelector("#community-confirm-publish");
+    const dialogStatus = publishDialog.querySelector("[data-publish-status]");
+    dialogStatus.textContent = "Publishing…";
     button.disabled = true;
     try {
-      if (!await saveCurrentSystem() || !currentSystemId) throw new Error("Save the system before publishing.");
+      if (!await saveCurrentSystem() || !currentSystemId) throw new Error(status.textContent);
       await request("/api/systems/publish", { method: "POST", body: { id: currentSystemId } });
       publishDialog.close();
-      status.textContent = "Published to Community.";
+      showSuccess("Published to Community");
       await refreshOwnedSystems();
     } catch (error) {
-      status.textContent = error.message;
+      dialogStatus.textContent = error.message;
     } finally {
       button.disabled = false;
     }
@@ -684,8 +759,11 @@
       communityNav.classList.remove("active");
       root.querySelectorAll(".app-community-view").forEach((view) => view.classList.remove("active"));
     }
-    const createButton = event.target.closest("[data-start-new]");
-    if (createButton) currentSystemId = null;
+    if (event.target.closest('[data-start-new], [data-app-view="new"]')) {
+      currentSystemId = null;
+      setEditorName(untitledName);
+      ensureWorkspaceStatus().textContent = "";
+    }
   }, true);
 
   root.addEventListener("click", (event) => {
@@ -693,7 +771,9 @@
     if (saveButton) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      saveCurrentSystem();
+      saveCurrentSystem().then((saved) => {
+        if (saved) showSuccess("Saved to My systems");
+      });
     }
   }, true);
 
@@ -708,7 +788,12 @@
     navigate("community");
   }
 
-  firebaseAuth.onAuthStateChanged((user) => {
+  if (localWorkspace) {
+    ownerButton.hidden = false;
+    refreshOwnedSystems();
+  }
+
+  firebaseAuth?.onAuthStateChanged((user) => {
     ownerButton.hidden = !user;
     if (user) refreshOwnedSystems();
     else {

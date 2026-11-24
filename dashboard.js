@@ -29,22 +29,49 @@
       history.replaceState(null, '', '/');
     }
     views.forEach(v => v.classList.toggle('active', v.id === `app-${id}`)); root.querySelectorAll('[data-app-view]').forEach(b => b.classList.toggle('active', b.dataset.appView === id)); };
-  root.querySelectorAll('[data-app-view]').forEach(b => b.addEventListener('click', () => showView(b.dataset.appView)));
-  root.querySelectorAll('[data-start-new]').forEach(b => b.addEventListener('click', () => { showView('new'); renderStep(); }));
+  root.querySelectorAll('[data-app-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (button.dataset.appView === 'new') startNew();
+      else showView(button.dataset.appView);
+    });
+  });
+  root.querySelectorAll('[data-start-new]').forEach(button => button.addEventListener('click', startNew));
 
-  const state = { step: 1, platform: '', styles: [], custom: '', description: '', colors: ['#3854ef','#70a4ff','#12a4a7'] };
+  const newWizardState = () => ({ step: 1, platform: '', styles: [], custom: '', description: '', colors: ['#3854ef', '#70a4ff', '#12a4a7'] });
+  const state = newWizardState();
+
+  function startNew() {
+    Object.assign(state, newWizardState());
+    showView('new');
+    renderStep();
+  }
+
+  function generateWorkspace() {
+    const colors = [...state.colors, '#eef0f7'];
+    root.querySelectorAll('#app-workspace [data-token]').forEach((input, index) => {
+      input.value = colors[index];
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    root.querySelector('#app-workspace [data-device="phone"]').click();
+    showView('workspace');
+  }
   const steps = [
     { title: 'What are you designing for?', copy: 'Choose the platform you’re targeting.', html: () => `<div class="option-grid">${[['mobile','▯','Mobile Application'],['web','▱','Website'],['both','▤','Both Mobile & Web']].map(x => `<button class="option-card ${state.platform===x[0]?'selected':''}" data-platform="${x[0]}"><span class="check">✓</span><div class="option-icon">${x[1]}</div><div class="option-name">${x[2]}</div></button>`).join('')}</div>` },
-    { title: 'Choose your visual direction', copy: 'Pick one or more styles that match your vision.', html: () => { const opts=['Minimalist','Modern','Brutalist','Neo-Brutalist','Neumorphic','Glassmorphism','Material Design','Editorial','Playful','Corporate','Custom Style']; return `<div class="option-grid style-grid">${opts.map(x => `<button class="option-card ${state.styles.includes(x)?'selected':''}" data-style="${x}"><span class="check">✓</span><div class="option-icon">✦</div><div class="option-name">${x}</div></button>`).join('')}</div><div class="custom-style ${state.styles.includes('Custom Style')?'show':''}"><label class="field-label">Describe your preferred style</label><input class="text-input" id="custom-style-input" maxlength="120" placeholder="Describe the visual direction you have in mind..." value="${state.custom}"></div>`; } },
-    { title: 'Tell us about your project', copy: 'Give us a little context so we can build a design system that fits your product.', html: () => `<label class="field-label">Project description</label><div class="textarea-wrap"><textarea class="text-input textarea" id="project-description" maxlength="300" placeholder="I’m building a fitness app for beginners that focuses on making workouts simple and accessible...">${state.description}</textarea><span class="char-count" id="char-count">${state.description.length}/300</span></div><p style="font-size:12px;color:#888;margin-top:10px">Include what your product does, who it’s for and the experience you want to create.</p>` },
+    { title: 'Choose your visual direction', copy: 'Pick one or more styles that match your vision.', html: () => { const opts=['Minimalist','Modern','Brutalist','Neo-Brutalist','Neumorphic','Glassmorphism','Material Design','Editorial','Playful','Corporate','Custom Style']; return `<div class="option-grid style-grid">${opts.map(x => `<button class="option-card ${state.styles.includes(x)?'selected':''}" data-style="${x}"><span class="check">✓</span><div class="option-icon">✦</div><div class="option-name">${x}</div></button>`).join('')}</div><div class="custom-style ${state.styles.includes('Custom Style')?'show':''}"><label class="field-label">Describe your preferred style</label><input class="text-input" id="custom-style-input" maxlength="120" placeholder="Describe the visual direction you have in mind..." ></div>`; } },
+    { title: 'Tell us about your project', copy: 'Give us a little context so we can build a design system that fits your product.', html: () => `<label class="field-label">Project description</label><div class="textarea-wrap"><textarea class="text-input textarea" id="project-description" maxlength="300" placeholder="I’m building a fitness app for beginners that focuses on making workouts simple and accessible..."></textarea><span class="char-count" id="char-count">${state.description.length}/300</span></div><p style="font-size:12px;color:#888;margin-top:10px">Include what your product does, who it’s for and the experience you want to create.</p>` },
     { title: 'Choose your colours', copy: 'Select three colours that represent your brand.', html: () => `<div class="palette-row">${['Primary Colour','Secondary Colour','Accent Colour'].map((x,i)=>`<label class="color-field"><span class="field-label">${x}</span><div class="color-picker"><input type="color" value="${state.colors[i]}" data-color-index="${i}"><strong>${state.colors[i].toUpperCase()}</strong></div><input class="color-hex" value="${state.colors[i]}" maxlength="7" data-hex-index="${i}"></label>`).join('')}</div><button class="app-button ghost suggest-palette" id="suggest-palette">✦ Suggest a palette</button>` }
   ];
   const content = root.querySelector('#wizard-content');
-  function renderStep(){ const s=steps[state.step-1]; root.querySelector('#step-label').textContent=`Step ${state.step} of 4`;root.querySelector('#step-percent').textContent=`${state.step*25}%`;root.querySelector('#progress-bar').style.width=`${state.step*25}%`;content.innerHTML=`<div class="app-kicker">Design direction</div><h2>${s.title}</h2><p class="wizard-copy">${s.copy}</p>${s.html()}`;bindStep();root.querySelector('#wizard-back').disabled=state.step===1;root.querySelector('#wizard-next').textContent=state.step===4?'Generate my design system →':'Next →';}
+  function renderStep(){ const s=steps[state.step-1]; root.querySelector('#step-label').textContent=`Step ${state.step} of 4`;root.querySelector('#step-percent').textContent=`${state.step*25}%`;root.querySelector('#progress-bar').style.width=`${state.step*25}%`;content.innerHTML=`<div class="app-kicker">Design direction</div><h2>${s.title}</h2><p class="wizard-copy">${s.copy}</p>${s.html()}`;const custom = content.querySelector('#custom-style-input');
+    const description = content.querySelector('#project-description');
+    if (custom) custom.value = state.custom;
+    if (description) description.value = state.description;
+    bindStep();root.querySelector('#wizard-back').disabled=state.step===1;root.querySelector('#wizard-next').textContent=state.step===4?'Generate my design system →':'Next →';}
   function bindStep(){content.querySelectorAll('[data-platform]').forEach(b=>b.onclick=()=>{state.platform=b.dataset.platform;renderStep()});content.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.styles=state.styles.includes(b.dataset.style)?state.styles.filter(x=>x!==b.dataset.style):[...state.styles,b.dataset.style];renderStep()});const desc=content.querySelector('#project-description');if(desc)desc.oninput=()=>{state.description=desc.value;content.querySelector('#char-count').textContent=`${desc.value.length}/300`};const custom=content.querySelector('#custom-style-input');if(custom)custom.oninput=()=>state.custom=custom.value;content.querySelectorAll('[data-color-index]').forEach(i=>i.oninput=()=>{state.colors[i.dataset.colorIndex]=i.value;renderStep()});content.querySelectorAll('[data-hex-index]').forEach(i=>i.onchange=()=>{if(/^#[0-9a-f]{6}$/i.test(i.value)){state.colors[i.dataset.hexIndex]=i.value;renderStep()}else{i.value=state.colors[i.dataset.hexIndex]}});const suggest=content.querySelector('#suggest-palette');if(suggest)suggest.onclick=()=>{state.colors=['#111111','#e6e6e1','#3854ef'];renderStep()};}
   window.DSGenDashboard = {
     root,
     showView,
+    startNew,
     registerView(view) { views.push(view); },
     getWizardState() { return JSON.parse(JSON.stringify(state)); },
     setWizardState(values) {
@@ -53,20 +80,23 @@
       renderStep();
     },
   };
-  root.querySelector('#wizard-next').onclick=()=>{if(state.step<4){state.step++;renderStep()}else{showView('loading');setTimeout(()=>showView('workspace'),10000+Math.random()*5000)}};root.querySelector('#wizard-back').onclick=()=>{if(state.step>1){state.step--;renderStep()}};
+  root.querySelector('#wizard-next').onclick=()=>{if(state.step<4){state.step++;renderStep()}else{showView('loading');setTimeout(() => { if (root.querySelector('#app-loading').classList.contains('active')) generateWorkspace(); }, localWorkspace ? 250 : 10000 + Math.random() * 5000)}};root.querySelector('#wizard-back').onclick=()=>{if(state.step>1){state.step--;renderStep()}};
   root.querySelectorAll('[data-device]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-device]').forEach(x=>x.classList.remove('active'));b.classList.add('active');root.querySelector('#preview-device').className=`preview-device ${b.dataset.device}`});
   root.querySelectorAll('[data-token]').forEach(i=>i.oninput=()=>{const color=i.value;root.querySelector(`.swatch-edit input[data-token="${i.dataset.token}"] + span`).style.background=color;root.querySelector('#preview-device').style.setProperty(`--preview-${i.dataset.token}`,color)});
   window.addEventListener('keydown', e => { if(!root.querySelector('#app-loading').classList.contains('active'))return; const snake=root.querySelector('.snake'); if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){snake.style.transform=`translate(${e.key==='ArrowRight'?'12px':e.key==='ArrowLeft'?'-12px':'0'},${e.key==='ArrowDown'?'12px':e.key==='ArrowUp'?'-12px':'0'})`;e.preventDefault()} });
-  firebaseAuth.onAuthStateChanged(user => {
+  function updateLayout(user) {
     const browsingCommunity = location.pathname === '/community';
-    root.classList.toggle('public-community', browsingCommunity && !user);
-    root.style.display = user || browsingCommunity ? 'block' : 'none';
-    document.querySelector('header').style.display = user ? 'none' : '';
-    document.querySelector('main#top').style.display = user || browsingCommunity ? 'none' : '';
-    document.querySelector('body > footer').style.display = user ? 'none' : '';
+    const workspace = localWorkspace || Boolean(user);
+    root.classList.toggle('public-community', browsingCommunity && !workspace);
+    root.style.display = workspace || browsingCommunity ? 'block' : 'none';
+    document.querySelector('header').style.display = workspace ? 'none' : '';
+    document.querySelector('main#top').style.display = workspace || browsingCommunity ? 'none' : '';
+    document.querySelector('body > footer').style.display = workspace ? 'none' : '';
 
     const name = (user?.displayName || '').split(' ')[0];
     root.querySelector('#user-name').textContent = name ? `, ${name}` : '';
-    if (!user && !browsingCommunity) showView('home');
-  });
+    if (!workspace && !browsingCommunity) showView('home');
+  }
+  if (localWorkspace) updateLayout(null);
+  else firebaseAuth.onAuthStateChanged(updateLayout);
 })();

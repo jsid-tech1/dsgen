@@ -6,6 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "node scripts/local-development.mjs",
     "test": "node --test"
   },
   "dependencies": {

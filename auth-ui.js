@@ -69,4 +69,4 @@ if (accountPanel) {
   accountPanel.dataset.initial = initialName[0].toUpperCase();
 }
 
-firebaseAuth.onAuthStateChanged(updateHeaderAuth);
+firebaseAuth?.onAuthStateChanged(updateHeaderAuth);

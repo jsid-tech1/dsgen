@@ -60,7 +60,18 @@ Configure these in Vercel for the relevant deployment environments. Do not commi
 
 `.gitignore` excludes `.env*`, `.vercel/`, and `node_modules/`; still review Git history and repository secret scanning if credentials may have been committed previously.
 
-## Run locally
+## Local workspace
+
+Run `npm run dev` (or `node scripts/local-development.mjs`) and open
+[http://localhost:3000/](http://localhost:3000/). The local workspace opens
+without signing in and stores JSON in `.local-data/save/`. Confirming
+**Publish to Community** creates a separate JSON snapshot in
+`.local-data/publish/`, which appears in the [local Community gallery](http://localhost:3000/community).
+Save updates the draft. Publish again to update the gallery snapshot.
+These folders are ignored by Git. Local files and publication stay on your
+machine, and the server uses the loopback interface only.
+
+## Test with Firebase locally
 
 Use Node.js 20 or later. From the repository root:
 

@@ -17,6 +17,8 @@
   `;
   document.head.appendChild(style);
 
+  if (localWorkspace) return;
+
   const signOut = document.createElement('button');
   signOut.className = 'app-signout';
   signOut.type = 'button';
