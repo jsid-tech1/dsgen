@@ -24,7 +24,11 @@
   document.body.appendChild(root);
 
   const views = [...root.querySelectorAll('.app-view')];
-  const showView = (id) => { views.forEach(v => v.classList.toggle('active', v.id === `app-${id}`)); root.querySelectorAll('[data-app-view]').forEach(b => b.classList.toggle('active', b.dataset.appView === id)); };
+  const showView = (id) => {
+    if (location.pathname === '/community' && id !== 'community' && !id.startsWith('community-')) {
+      history.replaceState(null, '', '/');
+    }
+    views.forEach(v => v.classList.toggle('active', v.id === `app-${id}`)); root.querySelectorAll('[data-app-view]').forEach(b => b.classList.toggle('active', b.dataset.appView === id)); };
   root.querySelectorAll('[data-app-view]').forEach(b => b.addEventListener('click', () => showView(b.dataset.appView)));
   root.querySelectorAll('[data-start-new]').forEach(b => b.addEventListener('click', () => { showView('new'); renderStep(); }));
 
@@ -53,5 +57,16 @@
   root.querySelectorAll('[data-device]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-device]').forEach(x=>x.classList.remove('active'));b.classList.add('active');root.querySelector('#preview-device').className=`preview-device ${b.dataset.device}`});
   root.querySelectorAll('[data-token]').forEach(i=>i.oninput=()=>{const color=i.value;root.querySelector(`.swatch-edit input[data-token="${i.dataset.token}"] + span`).style.background=color;root.querySelector('#preview-device').style.setProperty(`--preview-${i.dataset.token}`,color)});
   window.addEventListener('keydown', e => { if(!root.querySelector('#app-loading').classList.contains('active'))return; const snake=root.querySelector('.snake'); if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){snake.style.transform=`translate(${e.key==='ArrowRight'?'12px':e.key==='ArrowLeft'?'-12px':'0'},${e.key==='ArrowDown'?'12px':e.key==='ArrowUp'?'-12px':'0'})`;e.preventDefault()} });
-  firebaseAuth.onAuthStateChanged(user => { if(user){ root.style.display='block'; document.querySelector('header').style.display='none'; document.querySelector('main#top').style.display='none'; document.querySelector('body > footer').style.display='none'; const n=(user.displayName||'').split(' ')[0]; root.querySelector('#user-name').textContent=n?`, ${n}`:''; } else { root.style.display='none'; document.querySelector('header').style.display=''; document.querySelector('main#top').style.display=''; document.querySelector('body > footer').style.display=''; } });
+  firebaseAuth.onAuthStateChanged(user => {
+    const browsingCommunity = location.pathname === '/community';
+    root.classList.toggle('public-community', browsingCommunity && !user);
+    root.style.display = user || browsingCommunity ? 'block' : 'none';
+    document.querySelector('header').style.display = user ? 'none' : '';
+    document.querySelector('main#top').style.display = user || browsingCommunity ? 'none' : '';
+    document.querySelector('body > footer').style.display = user ? 'none' : '';
+
+    const name = (user?.displayName || '').split(' ')[0];
+    root.querySelector('#user-name').textContent = name ? `, ${name}` : '';
+    if (!user && !browsingCommunity) showView('home');
+  });
 })();

@@ -9,6 +9,9 @@
 
   const style = document.createElement("style");
   style.textContent = `
+    .public-community .app-shell{display:block;min-height:0}
+    .public-community .app-sidebar{display:none}
+    .public-community .app-main{width:min(100%,1240px);margin:auto;min-height:65vh}
     .community-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 190px 190px;gap:10px;margin:-22px 0 20px}
     .community-toolbar input,.community-toolbar select{height:44px;width:100%;border:1px solid #ddd;border-radius:9px;background:#fff;padding:0 13px;font:inherit;font-size:13px;color:#111}
     .community-filters{display:flex;align-items:center;gap:8px;margin:0 0 18px;overflow:auto}
@@ -104,7 +107,7 @@
 
   const viewMarkup = `
     <section class="app-view" id="app-community">
-      <div class="app-topline"><div><div class="app-kicker">Discover</div><h1 class="app-title">Community</h1><p class="app-subtitle">Explore design systems published by the DSGen community.</p></div><button type="button" class="app-button ghost" data-community-owner>My published systems</button></div>
+      <div class="app-topline"><div><div class="app-kicker">Discover</div><h1 class="app-title">Community</h1><p class="app-subtitle">Explore design systems published by the DSGen community.</p></div><button type="button" class="app-button ghost" data-community-owner hidden>My published systems</button></div>
       <div class="community-toolbar"><input id="community-search" type="search" placeholder="Search systems and creators" aria-label="Search community systems"><select id="community-style" aria-label="Filter by style"><option value="">All styles</option><option>Minimalist</option><option>Modern</option><option>Brutalist</option><option>Neo-Brutalist</option><option>Neumorphic</option><option>Glassmorphism</option><option>Material Design</option><option>Editorial</option><option>Playful</option><option>Corporate</option></select><select id="community-sort" aria-label="Sort community systems"><option value="newest">Recently published</option><option value="name">Name A–Z</option></select></div>
       <div class="community-filters"><button type="button" class="community-filter active" data-platform-filter="">All</button><button type="button" class="community-filter" data-platform-filter="mobile">Mobile</button><button type="button" class="community-filter" data-platform-filter="web">Web</button><button type="button" class="community-filter" data-platform-filter="both">Both</button><span class="community-result-count" id="community-count"></span></div>
       <div class="system-grid" id="community-grid" aria-live="polite"></div><p class="community-status" id="community-status" role="status"></p>
@@ -131,7 +134,7 @@
     const communityVisible = view === "community" || view.startsWith("community-");
     communityNav.classList.toggle("active", communityVisible);
     if (view === "community") refreshGallery();
-    if (view === "community-owner") refreshOwnerSystems();
+    if (view === "community-owner") refreshOwnedSystems();
   }
 
   function escapeStyle(value) {
@@ -227,11 +230,13 @@
     return url.toString();
   }
 
-  async function request(path, { method = "GET", body = undefined, params = {} } = {}) {
+  async function request(path, { method = "GET", body = undefined, params = {}, publicRead = false } = {}) {
     const user = firebaseAuth.currentUser;
-    if (!user) throw new Error("Sign in to use Community.");
-    const token = await user.getIdToken();
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers = {};
+    if (!publicRead) {
+      if (!user) throw new Error("Sign in to use Community.");
+      headers.Authorization = `Bearer ${await user.getIdToken()}`;
+    }
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const response = await fetch(apiUrl(path, params), {
       method,
@@ -283,7 +288,7 @@
     const status = root.querySelector("#community-status");
     status.textContent = "Loading published systems…";
     try {
-      const result = await request("/api/community/gallery");
+      const result = await request("/api/community/gallery", { publicRead: true });
       publicSystems = Array.isArray(result.systems) ? result.systems : [];
       renderGallery();
     } catch (error) {
@@ -371,7 +376,13 @@
     const actions = make("div", "community-detail-actions");
     const copy = make("button", "app-button", "Use this system");
     copy.type = "button";
-    copy.addEventListener("click", () => copyPublishedSystem(system.id));
+    copy.addEventListener("click", () => {
+      if (!firebaseAuth.currentUser) {
+        document.querySelector("[data-auth-trigger]").click();
+        return;
+      }
+      copyPublishedSystem(system.id);
+    });
     actions.append(copy);
     previewPanel.append(actions);
     layout.append(dataPanel, previewPanel);
@@ -380,7 +391,7 @@
 
   async function openPublicSystem(id) {
     try {
-      const result = await request("/api/community/system", { params: { id } });
+      const result = await request("/api/community/system", { params: { id }, publicRead: true });
       systemDetailContent(result.system);
       navigate("community-detail");
     } catch (error) {
@@ -391,7 +402,7 @@
 
   async function openCreator(id) {
     try {
-      const result = await request("/api/community/creator", { params: { id } });
+      const result = await request("/api/community/creator", { params: { id }, publicRead: true });
       activeCreator = result.creator;
       const panel = root.querySelector("#community-creator-content");
       panel.replaceChildren();
@@ -663,7 +674,8 @@
     renderGallery();
   }));
   communityNav.addEventListener("click", () => navigate("community"));
-  root.querySelector("[data-community-owner]").addEventListener("click", () => navigate("community-owner"));
+  const ownerButton = root.querySelector("[data-community-owner]");
+  ownerButton.addEventListener("click", () => navigate("community-owner"));
   root.querySelectorAll("[data-community-back]").forEach((button) => button.addEventListener("click", () => navigate(button.dataset.communityBack)));
 
   root.addEventListener("click", (event) => {
@@ -691,13 +703,22 @@
   publishButton.addEventListener("click", () => openPublishReview());
   workspaceHeader?.append(publishButton);
 
+  if (location.pathname === "/community") {
+    document.querySelector("#community-link").setAttribute("aria-current", "page");
+    navigate("community");
+  }
+
   firebaseAuth.onAuthStateChanged((user) => {
+    ownerButton.hidden = !user;
     if (user) refreshOwnedSystems();
     else {
       ownedSystems = [];
-      publicSystems = [];
+      currentSystemId = null;
       renderOwnedCards();
-      renderGallery();
+      if (location.pathname === "/community" &&
+          root.querySelector("#app-community-owner").classList.contains("active")) {
+        navigate("community");
+      }
     }
   });
 })();
