@@ -14,7 +14,7 @@ const project = new URL("../", import.meta.url);
 const folders = { save: new URL(".local-data/save/", project), publish: new URL(".local-data/publish/", project) };
 for (const folder of Object.values(folders)) mkdirSync(folder, { recursive: true });
 
-const staticFiles = new Set(["/index.html", "/auth-ui.js", "/dashboard.js", "/community.js", "/dashboard-enhancements.js"]);
+const staticFiles = new Set(["/index.html", "/auth-ui.js", "/design-presets.js", "/dashboard.js", "/community.js", "/dashboard-enhancements.js"]);
 const methods = new Map([
   ["/api/systems", ["GET", "POST"]],
   ["/api/systems/item", ["GET", "PUT", "DELETE"]],

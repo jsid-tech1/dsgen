@@ -30,6 +30,7 @@ export default async function handler(request, response) {
         styles: source.wizard.styles,
         customStyleDescription: source.wizard.customStyleDescription ?? "",
         projectDescription: source.description,
+        ...(source.wizard.presetId ? { presetId: source.wizard.presetId } : {}),
         selectedColors: {
           primary: source.tokens.colors.primary,
           secondary: source.tokens.colors.secondary,

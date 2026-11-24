@@ -78,6 +78,9 @@
     .community-variant-preview .preview-button{background:var(--preview-accent);color:#fff}
     .community-variant-preview .preview-device.variant-brutalist .preview-button,.community-variant-preview .preview-device.variant-neo-brutalist .preview-button{border:2px solid #111;border-radius:2px;box-shadow:3px 3px 0 #111}
     .community-variant-preview .preview-device.variant-glassmorphism .preview-hero{opacity:.78}
+    .community-preview.variant-glassmorphism :is(.preview-sample,.preview-chip){border:0;box-shadow:inset 0 2px 4px #fff5,0 4px 12px #0002}
+    .community-preview.variant-brutalist .preview-sample,.community-variant-preview .preview-device.variant-brutalist,.community-variant-preview .preview-device.variant-brutalist .preview-button{border-radius:0;box-shadow:none}
+    .community-variant-preview .preview-device.variant-playful .preview-button{border:0;border-radius:999px;font-weight:700;box-shadow:inset 0 -4px 0 #0002}
     .community-detail-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
     .community-review-dialog{max-width:640px}
     .community-review-dialog h2{font-size:28px;font-weight:400;margin:8px 0}
@@ -115,7 +118,7 @@
   const viewMarkup = `
     <section class="app-view" id="app-community">
       <div class="app-topline"><div><div class="app-kicker">Discover</div><h1 class="app-title">Community</h1><p class="app-subtitle">Explore design systems published by the DSGen community.</p></div><button type="button" class="app-button ghost" data-community-owner hidden>My published systems</button></div>
-      <div class="community-toolbar"><input id="community-search" type="search" placeholder="Search systems and creators" aria-label="Search community systems"><select id="community-style" aria-label="Filter by style"><option value="">All styles</option><option>Minimalist</option><option>Modern</option><option>Brutalist</option><option>Neo-Brutalist</option><option>Neumorphic</option><option>Glassmorphism</option><option>Material Design</option><option>Editorial</option><option>Playful</option><option>Corporate</option></select><select id="community-sort" aria-label="Sort community systems"><option value="newest">Recently published</option><option value="name">Name A–Z</option></select></div>
+      <div class="community-toolbar"><input id="community-search" type="search" placeholder="Search systems and creators" aria-label="Search community systems"><select id="community-style" aria-label="Filter by style"><option value="">All styles</option><option>Minimalist</option><option>Modern</option><option>Brutalist</option><option>Neo-Brutalist</option><option>Neumorphic</option><option>Glassmorphism</option><option>Material Design</option><option>Editorial</option><option>Playful</option><option>Corporate</option><option>Flat Design</option></select><select id="community-sort" aria-label="Sort community systems"><option value="newest">Recently published</option><option value="name">Name A–Z</option></select></div>
       <div class="community-filters"><button type="button" class="community-filter active" data-platform-filter="">All</button><button type="button" class="community-filter" data-platform-filter="mobile">Mobile</button><button type="button" class="community-filter" data-platform-filter="web">Web</button><button type="button" class="community-filter" data-platform-filter="both">Both</button><span class="community-result-count" id="community-count"></span></div>
       <div class="system-grid" id="community-grid" aria-live="polite"></div><p class="community-status" id="community-status" role="status"></p>
     </section>
@@ -184,6 +187,10 @@
     });
     const sample = make("div", "preview-sample");
     const type = make("div");
+    const font = system?.tokens?.typography?.fontFamily;
+    if (globalThis.designPresets.hasFont(font)) {
+      type.style.fontFamily = JSON.stringify(font) + ", " + globalThis.designPresets.fonts[font];
+    }
     type.append(make("div", "preview-type", "Aa"));
     type.append(make("div", "preview-copy", system?.tokens?.typography?.fontFamily || "Typography preview"));
     const actions = make("div", "preview-actions");
@@ -497,6 +504,7 @@
         styles: wizard.styles || [],
         customStyleDescription: wizard.custom || "",
         projectDescription: description,
+        ...(wizard.presetId ? { presetId: wizard.presetId } : {}),
         selectedColors: {
           primary: wizard.colors[0], secondary: wizard.colors[1], accent: wizard.colors[2],
         },
@@ -508,7 +516,7 @@
           accent: color(editorColors.accent, wizard.colors[2]),
           surface: color(editorColors.surface, "#eef0f7"),
         },
-        typography: { fontFamily: "Inter", scale: { body: 16, heading: 24, display: 32 } },
+        typography: { fontFamily: wizard.fontFamily || "Inter", scale: { body: 16, heading: 24, display: 32 } },
       },
       components: { buttons: ["Primary", "Secondary", "Tertiary"], cards: ["Default", "Featured"] },
       editor: { previewDevice: root.querySelector("#preview-device")?.classList.contains("tablet") ? "tablet" : root.querySelector("#preview-device")?.classList.contains("laptop") ? "laptop" : "phone" },
@@ -524,6 +532,8 @@
       styles: Array.isArray(wizard.styles) ? [...wizard.styles] : [],
       custom: wizard.customStyleDescription || "",
       description: wizard.projectDescription || system.description || "",
+      presetId: wizard.presetId,
+      fontFamily: system.tokens?.typography?.fontFamily || "Inter",
       colors: [wizard.selectedColors?.primary, wizard.selectedColors?.secondary, wizard.selectedColors?.accent]
         .map((value, index) => color(value, ["#3854ef", "#70a4ff", "#12a4a7"][index])),
     });

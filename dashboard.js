@@ -39,25 +39,262 @@
 
   const newWizardState = () => ({ step: 1, platform: '', styles: [], custom: '', description: '', colors: ['#3854ef', '#70a4ff', '#12a4a7'] });
   const state = newWizardState();
+  const workspace = root.querySelector('#app-workspace');
+  const presets = globalThis.designPresets;
+  const presetStyles = document.createElement('style');
+  presetStyles.textContent = `
+    #app-workspace[data-preset] .preview-device {background:var(--preset-surface);color:var(--preset-ink)}
+    #app-workspace[data-preset] .preview-device p {color:inherit}
+    #app-workspace[data-preset] .preview-button,
+    #app-workspace[data-preset] .component-pill {border-radius:var(--preset-radius);padding:var(--preset-padding);border:var(--preset-border) solid var(--preset-line)}
+    #app-workspace[data-preset] .preview-button {background:var(--preset-accent);color:var(--preset-on-accent)}
+    #app-workspace[data-preset] .component-pill {background-color:var(--preset-surface) !important;color:var(--preset-ink) !important}
+    #app-workspace[data-preset] .component-row > .component-pill:first-child {background-color:var(--preset-primary) !important;color:var(--preset-on-primary) !important}
+    #app-workspace[data-preset] .preview-hero {border-radius:var(--preset-radius);border:var(--preset-border) solid var(--preset-line)}
+    #app-workspace[data-preset="glass"] .preview-device {background:linear-gradient(135deg,var(--preset-tint),var(--preset-surface))}
+    #app-workspace[data-preset="glass"] .preview-hero {position:relative;overflow:hidden}
+    #app-workspace[data-preset="glass"] .preview-hero::after {content:"";position:absolute;inset:18% 14%;border-radius:inherit;background:#ffffff35;border:1px solid #ffffff80;backdrop-filter:blur(10px);box-shadow:0 4px 14px #0002}
+    #app-workspace[data-preset="soft"] .preview-hero {background:var(--preset-tint);box-shadow:inset 5px 5px 12px #0002,inset -5px -5px 12px #fff7}
+    #app-workspace[data-preset="offset"] :is(.preview-button,.component-pill,.preview-hero) {box-shadow:4px 4px 0 var(--preset-line)}
+    #app-workspace[data-preset="raw"] .preview-hero {background:var(--preset-primary)}
+    #app-workspace[data-preset="rule"] .preview-device h4 {border-bottom:1px solid var(--preset-line)}
+    #app-workspace[data-preset="raised"] :is(.preview-button,.component-pill,.preview-hero) {box-shadow:0 3px 8px #0003}
+    #app-workspace :is(.preview-device,.type-demo,.component-pill,.preview-button) {font-family:var(--system-font,Inter),var(--system-font-fallback,sans-serif)}
+    #app-workspace .font-picker {max-width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:7px;background:white;color:#161616;font:inherit}
+    #app-workspace .workspace-layout > * {min-width:0}
+    #app-workspace .preview-device {max-width:100%}
+    #app-workspace .mockup-toolbar {flex-wrap:wrap}
+    #app-workspace .workspace-header {gap:16px}
+    #app-workspace[data-preset] :is(.preview-button,.button-sample) {cursor:pointer;transition:box-shadow .15s,transform .15s,filter .15s}
+    #app-workspace[data-preset] :is(.preview-button,.button-sample):hover {filter:brightness(.92)}
+    #app-workspace[data-preset] :is(.preview-button,.button-sample):active {transform:translateY(2px)}
+    #app-workspace[data-preset] :is(.preview-button,.button-sample):focus-visible {outline:2px solid currentColor;outline-offset:-4px;box-shadow:0 0 0 2px var(--preset-surface),0 0 0 4px var(--preset-line)}
+    #app-workspace[data-preset="glass"] :is(.preview-button,.component-pill) {background-image:linear-gradient(155deg,#fff2,transparent 60%,#0001);background-blend-mode:soft-light;backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 #fff8,0 3px 10px #0002}
+    #app-workspace[data-preset="glass"] :is(.preview-button,.button-sample):active {box-shadow:inset 0 2px 6px #0004}
+    #app-workspace[data-preset="soft"] :is(.preview-button,.component-pill) {box-shadow:5px 5px 10px #0003,-4px -4px 9px #fff,inset 1px 1px 2px #fff7}
+    #app-workspace[data-preset="soft"] :is(.preview-button,.button-sample):active {box-shadow:inset 4px 4px 8px #0005,inset -3px -3px 6px #fff6}
+    #app-workspace[data-preset="offset"] :is(.preview-button,.button-sample):active {box-shadow:1px 1px 0 var(--preset-line);transform:translate(2px,2px)}
+    #app-workspace[data-preset="raised"] :is(.preview-button,.button-sample):hover {box-shadow:0 5px 10px #0004}
+    #app-workspace[data-preset="raised"] :is(.preview-button,.button-sample):active {box-shadow:0 1px 3px #0004}
+    #app-workspace[data-preset] .card-sample {padding:var(--preset-padding);min-width:0}
+    #app-workspace[data-preset] .card-sample:last-child {background-color:var(--preset-tint) !important}
+    #app-workspace[data-preset] .button-sample:last-child {background:transparent !important;border-color:transparent}
+    #app-workspace[data-preset="glass"] .preview-hero,
+    #app-workspace[data-preset="glass"] .component-row {
+      background:radial-gradient(ellipse at 80% 10%,var(--preset-accent),transparent 55%),
+        linear-gradient(120deg,var(--preset-primary),var(--preset-surface) 60%,var(--preview-secondary,var(--preset-secondary)));
+    }
+    #app-workspace[data-preset="glass"] .component-row {padding:12px;border-radius:var(--preset-radius)}
+    #app-workspace[data-preset="glass"] .preview-hero::after {
+      inset:18% 12% 18% 30%;border:none;background:linear-gradient(145deg,#fff6,#fff1);
+      box-shadow:inset 0 2px 4px #fff6,0 8px 20px #0002;backdrop-filter:blur(14px);
+    }
+    #app-workspace[data-preset="glass"] :is(.preview-button,.component-pill) {
+      --glass-fill:var(--preset-surface);
+      border:none;background:linear-gradient(155deg,#fff1,transparent 55%),
+        color-mix(in srgb,var(--glass-fill) 91%,transparent) !important;
+      backdrop-filter:blur(14px) saturate(125%);box-shadow:inset 0 2px 4px #fff3,0 4px 10px #0002;
+    }
+    #app-workspace[data-preset="glass"] .component-row > :first-child {--glass-fill:var(--preset-primary)}
+    #app-workspace[data-preset="glass"] .preview-button {--glass-fill:var(--preset-accent)}
+    #app-workspace[data-preset="raw"] :is(.button-sample,.preview-button,.preview-device h4) {font-weight:800;letter-spacing:-.035em}
+    #app-workspace[data-preset="raw"] .preview-hero {
+      background:repeating-linear-gradient(90deg,transparent 0 22%,var(--preset-line) 22% 23%),var(--preset-primary);
+      border-bottom-width:7px;
+    }
+    #app-workspace[data-preset="raw"] .card-sample {border-width:0 0 3px;border-radius:0}
+    #app-workspace[data-preset="offset"] .preview-hero {
+      background:radial-gradient(var(--preset-on-primary) 1px,transparent 1.5px) 0 0/9px 9px,var(--preset-primary);
+    }
+    #app-workspace[data-preset="offset"] :is(.preview-button,.button-sample) {font-weight:750}
+    #app-workspace[data-preset="cushion"] :is(.preview-button,.button-sample) {
+      border-radius:999px;font-weight:700;box-shadow:inset 0 -4px 0 #0002;
+    }
+    #app-workspace[data-preset="cushion"] :is(.preview-button,.button-sample):active {transform:translateY(2px);box-shadow:inset 0 -1px 0 #0002}
+    #app-workspace[data-preset="cushion"] .card-sample {border-radius:24px 16px 24px 12px}
+    #app-workspace[data-preset="cushion"] .preview-hero {
+      background:radial-gradient(circle at 82% 15%,var(--preset-accent) 0 23%,transparent 24%),
+        radial-gradient(ellipse at 15% 105%,var(--preset-secondary) 0 43%,transparent 44%),var(--preset-primary);
+      border-radius:32px 20px 42px 16px;
+    }
+    #app-workspace[data-preset] :is(.preview-button,.button-sample):focus-visible {
+      outline:3px solid var(--preset-line);outline-offset:3px;
+    }
+    #app-workspace[data-preset][data-composition="compact"] .preview-hero {height:70px}
+    #app-workspace[data-preset][data-composition="compact"] .preview-device h4 {margin-top:12px;font-size:20px}
+    #app-workspace[data-preset][data-composition="showcase"] .preview-hero {height:clamp(105px,15vw,150px)}
+    #app-workspace[data-preset][data-composition="showcase"] .preview-device h4 {font-size:26px;line-height:1.08}
+    #app-workspace[data-preset][data-composition="reading"] .preview-device p {font-size:14px;line-height:1.65;max-width:52ch}
+    #app-workspace[data-preset] .preview-device {overflow:auto}
+    #app-workspace .card-gallery {display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+    #app-workspace .card-gallery article {display:grid;gap:8px;align-content:start;padding:18px;min-width:0;border:1px solid #ddd;border-radius:12px;background:white;font-family:var(--system-font,Inter),var(--system-font-fallback,sans-serif)}
+    #app-workspace .card-gallery .card-body {margin:0;font-size:13px;line-height:1.5;color:inherit}
+    #app-workspace .card-gallery .card-title {margin:0;font-size:18px;line-height:1.25;letter-spacing:-.025em}
+    #app-workspace .card-gallery small {font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+    #app-workspace .card-gallery .card-art {height:42px;background:linear-gradient(115deg,var(--preset-secondary,#70a4ff),var(--preset-accent,#12a4a7));border-radius:inherit}
+    #app-workspace[data-preset] .card-gallery article {padding:max(16px,var(--card-inset));border-radius:var(--preset-radius);border-width:var(--preset-border);border-color:var(--preset-line)}
+    #app-workspace[data-preset="cushion"] .card-gallery article {border-radius:24px 16px 24px 12px}
+    #app-workspace[data-preset="raw"] .card-gallery article {border-width:3px}
+    #app-workspace .preview-story {display:contents}
+    #app-workspace[data-preset="glass"] .preview-device {
+      isolation:isolate;background:
+        radial-gradient(ellipse at 92% 32%,var(--preset-accent),transparent 55%),
+        radial-gradient(ellipse at 5% 68%,var(--preset-secondary),transparent 58%),
+        linear-gradient(145deg,var(--preset-primary),var(--preset-surface));
+    }
+    #app-workspace[data-preset="glass"] .preview-device .preview-hero {background:transparent;border:0;box-shadow:none}
+    #app-workspace[data-preset="glass"] .preview-device .preview-hero::after {display:none}
+    #app-workspace[data-preset="glass"] .preview-story {
+      display:block;position:relative;padding:18px;border-radius:var(--preset-radius);
+      background:color-mix(in srgb,var(--preset-surface) 84%,transparent);
+      backdrop-filter:blur(16px) saturate(145%);box-shadow:inset 0 2px 5px #fff4,0 12px 28px #0002;
+    }
+    #app-workspace[data-preset="glass"] .preview-story h4 {margin-top:0}
+    @media(prefers-reduced-motion:reduce) {#app-workspace[data-preset] :is(.preview-button,.button-sample) {transition:none}}
+  `;
+  document.head.append(presetStyles);
+
+  const fontPicker = document.createElement('select');
+  fontPicker.className = 'font-picker';
+  fontPicker.setAttribute('aria-label', 'Design system font');
+  const typeNote = workspace.querySelector('.type-demo + small');
+  typeNote.before(fontPicker, document.createTextNode(' '));
+  typeNote.textContent = '· 16 / 24 / 32';
+  const fontLink = document.createElement('link');
+  fontLink.rel = 'stylesheet';
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Instrument+Serif&family=Nunito:wght@400;600&family=Roboto:wght@400;600&family=Space+Grotesk:wght@400;600&display=swap';
+  document.head.append(fontLink);
+
+  function applyFont() {
+    const font = presets.hasFont(state.fontFamily) ? state.fontFamily : 'Inter';
+    workspace.style.setProperty('--system-font', JSON.stringify(font));
+    workspace.style.setProperty('--system-font-fallback', presets.fonts[font]);
+    fontPicker.value = font;
+  }
+
+  function refreshFonts(style) {
+    const suggested = presets.suggestedFonts(style);
+    fontPicker.replaceChildren();
+    for (const [label, fonts] of [['Suggested for this style', suggested], ['More fonts', Object.keys(presets.fonts).filter(font => !suggested.includes(font))]]) {
+      const group = document.createElement('optgroup');
+      group.label = label;
+      for (const font of fonts) group.append(new Option(font, font));
+      fontPicker.append(group);
+    }
+    applyFont();
+  }
+  fontPicker.addEventListener('change', () => {
+    state.fontFamily = fontPicker.value;
+    applyFont();
+  });
+
+  const [buttonRow, cardRow] = workspace.querySelectorAll('.component-row');
+  for (const sample of buttonRow.children) {
+    sample.classList.add('button-sample');
+  }
+  cardRow.classList.add('card-gallery');
+  const samples = [
+    ['Default', 'Project overview', 'A summary of the current scope and upcoming milestones.'],
+    ['Featured', 'Release highlights', 'Explore the improvements included in the latest release.'],
+  ];
+  cardRow.replaceChildren(...samples.map(([variant, title, description]) => {
+    const card = document.createElement('article');
+    card.className = 'component-pill card-sample';
+    if (variant === 'Featured') {
+      const art = document.createElement('div');
+      art.className = 'card-art';
+      card.append(art);
+    }
+    const label = document.createElement('small');
+    label.textContent = variant;
+    const heading = document.createElement('h4');
+    heading.className = 'card-title';
+    heading.textContent = title;
+    const body = document.createElement('p');
+    body.className = 'card-body';
+    body.textContent = description;
+    card.append(label, heading, body);
+    return card;
+  }));
+  const devicePreview = workspace.querySelector('#preview-device');
+  const story = document.createElement('div');
+  story.className = 'preview-story';
+  story.append(...devicePreview.querySelectorAll('h4,p,.preview-button'));
+  devicePreview.append(story);
+  function toggleButtonSamples(enabled) {
+    for (const sample of Array.from(buttonRow.children)) {
+      if ((sample.tagName === 'BUTTON') === enabled) continue;
+      const replacement = document.createElement(enabled ? 'button' : 'span');
+      if (enabled) replacement.type = 'button';
+      for (const attribute of sample.attributes) replacement.setAttribute(attribute.name, attribute.value);
+      replacement.textContent = sample.textContent;
+      sample.replaceWith(replacement);
+    }
+  }
+
+  function updatePresetColors() {
+    if (!workspace.dataset.preset) return;
+    const read = (role) => workspace.querySelector(`[data-token="${role}"]`).value;
+    const primary = read('primary');
+    const accent = read('accent');
+    const surface = read('surface');
+    const candidate = presets.mix(read('secondary'), surface, 0.08);
+    const ink = presets.ink(surface);
+    const values = {
+      primary, secondary: read('secondary'), accent, surface, ink,
+      tint: presets.ink(candidate) === ink ? candidate : surface,
+      line: ink,
+      'on-primary': presets.ink(primary),
+      'on-accent': presets.ink(accent),
+    };
+    for (const [role, value] of Object.entries(values)) workspace.style.setProperty('--preset-' + role, value);
+  }
+
+  function applyPreset() {
+    const preset = presets.get(state.presetId);
+    refreshFonts(preset?.style);
+    toggleButtonSamples(Boolean(preset));
+    if (!preset) {
+      delete workspace.dataset.preset;
+      return;
+    }
+    workspace.dataset.preset = preset.treatment;
+    workspace.dataset.composition = preset.composition;
+    workspace.style.setProperty('--card-inset', preset.padding + 5 + 'px');
+    workspace.style.setProperty('--preset-radius', preset.radius + 'px');
+    workspace.style.setProperty('--preset-padding', Math.max(6, preset.padding - 4) + 'px ' + preset.padding + 'px');
+    workspace.style.setProperty('--preset-border', preset.border + 'px');
+    updatePresetColors();
+  }
+  workspace.addEventListener('input', (event) => {
+    if (event.target.matches('[data-token]')) updatePresetColors();
+  });
 
   function startNew() {
+    delete state.presetId;
+    delete state.fontFamily;
     Object.assign(state, newWizardState());
     showView('new');
     renderStep();
   }
 
   function generateWorkspace() {
-    const colors = [...state.colors, '#eef0f7'];
+    state.presetId = presets.select(state)?.id;
+    const selected = presets.get(state.presetId);
+    state.fontFamily = selected ? presets.suggestedFonts(selected.style)[0] : 'Inter';
+    const surface = state.presetId ? presets.mix(state.colors[1], '#ffffff', 0.1) : '#eef0f7';
+    const colors = [...state.colors, surface];
     root.querySelectorAll('#app-workspace [data-token]').forEach((input, index) => {
       input.value = colors[index];
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
+    applyPreset();
     root.querySelector('#app-workspace [data-device="phone"]').click();
     showView('workspace');
   }
   const steps = [
     { title: 'What are you designing for?', copy: 'Choose the platform you’re targeting.', html: () => `<div class="option-grid">${[['mobile','▯','Mobile Application'],['web','▱','Website'],['both','▤','Both Mobile & Web']].map(x => `<button class="option-card ${state.platform===x[0]?'selected':''}" data-platform="${x[0]}"><span class="check">✓</span><div class="option-icon">${x[1]}</div><div class="option-name">${x[2]}</div></button>`).join('')}</div>` },
-    { title: 'Choose your visual direction', copy: 'Pick one or more styles that match your vision.', html: () => { const opts=['Minimalist','Modern','Brutalist','Neo-Brutalist','Neumorphic','Glassmorphism','Material Design','Editorial','Playful','Corporate','Custom Style']; return `<div class="option-grid style-grid">${opts.map(x => `<button class="option-card ${state.styles.includes(x)?'selected':''}" data-style="${x}"><span class="check">✓</span><div class="option-icon">✦</div><div class="option-name">${x}</div></button>`).join('')}</div><div class="custom-style ${state.styles.includes('Custom Style')?'show':''}"><label class="field-label">Describe your preferred style</label><input class="text-input" id="custom-style-input" maxlength="120" placeholder="Describe the visual direction you have in mind..." ></div>`; } },
+    { title: 'Choose your visual direction', copy: 'Pick one or more styles that match your vision.', html: () => { const opts=['Minimalist','Modern','Brutalist','Neo-Brutalist','Neumorphic','Glassmorphism','Material Design','Editorial','Playful','Corporate','Flat Design','Custom Style']; return `<div class="option-grid style-grid">${opts.map(x => `<button class="option-card ${state.styles.includes(x)?'selected':''}" data-style="${x}"><span class="check">✓</span><div class="option-icon">✦</div><div class="option-name">${x}</div></button>`).join('')}</div><div class="custom-style ${state.styles.includes('Custom Style')?'show':''}"><label class="field-label">Describe your preferred style</label><input class="text-input" id="custom-style-input" maxlength="120" placeholder="Describe the visual direction you have in mind..." ></div>`; } },
     { title: 'Tell us about your project', copy: 'Give us a little context so we can build a design system that fits your product.', html: () => `<label class="field-label">Project description</label><div class="textarea-wrap"><textarea class="text-input textarea" id="project-description" maxlength="300" placeholder="I’m building a fitness app for beginners that focuses on making workouts simple and accessible..."></textarea><span class="char-count" id="char-count">${state.description.length}/300</span></div><p style="font-size:12px;color:#888;margin-top:10px">Include what your product does, who it’s for and the experience you want to create.</p>` },
     { title: 'Choose your colours', copy: 'Select three colours that represent your brand.', html: () => `<div class="palette-row">${['Primary Colour','Secondary Colour','Accent Colour'].map((x,i)=>`<label class="color-field"><span class="field-label">${x}</span><div class="color-picker"><input type="color" value="${state.colors[i]}" data-color-index="${i}"><strong>${state.colors[i].toUpperCase()}</strong></div><input class="color-hex" value="${state.colors[i]}" maxlength="7" data-hex-index="${i}"></label>`).join('')}</div><button class="app-button ghost suggest-palette" id="suggest-palette">✦ Suggest a palette</button>` }
   ];
@@ -67,7 +304,22 @@
     if (custom) custom.value = state.custom;
     if (description) description.value = state.description;
     bindStep();root.querySelector('#wizard-back').disabled=state.step===1;root.querySelector('#wizard-next').textContent=state.step===4?'Generate my design system →':'Next →';}
-  function bindStep(){content.querySelectorAll('[data-platform]').forEach(b=>b.onclick=()=>{state.platform=b.dataset.platform;renderStep()});content.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.styles=state.styles.includes(b.dataset.style)?state.styles.filter(x=>x!==b.dataset.style):[...state.styles,b.dataset.style];renderStep()});const desc=content.querySelector('#project-description');if(desc)desc.oninput=()=>{state.description=desc.value;content.querySelector('#char-count').textContent=`${desc.value.length}/300`};const custom=content.querySelector('#custom-style-input');if(custom)custom.oninput=()=>state.custom=custom.value;content.querySelectorAll('[data-color-index]').forEach(i=>i.oninput=()=>{state.colors[i.dataset.colorIndex]=i.value;renderStep()});content.querySelectorAll('[data-hex-index]').forEach(i=>i.onchange=()=>{if(/^#[0-9a-f]{6}$/i.test(i.value)){state.colors[i.dataset.hexIndex]=i.value;renderStep()}else{i.value=state.colors[i.dataset.hexIndex]}});const suggest=content.querySelector('#suggest-palette');if(suggest)suggest.onclick=()=>{state.colors=['#111111','#e6e6e1','#3854ef'];renderStep()};}
+  function bindColorPickers() {
+    for (const picker of content.querySelectorAll('[data-color-index]')) {
+      const index = picker.dataset.colorIndex;
+      const field = picker.closest('.color-field');
+      const label = field.querySelector('strong');
+      const hex = field.querySelector('[data-hex-index]');
+      const sync = () => {
+        state.colors[index] = picker.value;
+        label.textContent = picker.value.toUpperCase();
+        hex.value = label.textContent;
+      };
+      picker.oninput = sync;
+      picker.onchange = sync;
+    }
+  }
+  function bindStep(){content.querySelectorAll('[data-platform]').forEach(b=>b.onclick=()=>{state.platform=b.dataset.platform;renderStep()});content.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>{state.styles=state.styles.includes(b.dataset.style)?state.styles.filter(x=>x!==b.dataset.style):[...state.styles,b.dataset.style];renderStep()});const desc=content.querySelector('#project-description');if(desc)desc.oninput=()=>{state.description=desc.value;content.querySelector('#char-count').textContent=`${desc.value.length}/300`};const custom=content.querySelector('#custom-style-input');if(custom)custom.oninput=()=>state.custom=custom.value;bindColorPickers();content.querySelectorAll('[data-hex-index]').forEach(i=>i.onchange=()=>{if(/^#[0-9a-f]{6}$/i.test(i.value)){state.colors[i.dataset.hexIndex]=i.value;renderStep()}else{i.value=state.colors[i.dataset.hexIndex]}});const suggest=content.querySelector('#suggest-palette');if(suggest)suggest.onclick=()=>{state.colors=['#111111','#e6e6e1','#3854ef'];renderStep()};}
   window.DSGenDashboard = {
     root,
     showView,
@@ -78,6 +330,7 @@
       Object.assign(state, values);
       state.step = 1;
       renderStep();
+      applyPreset();
     },
   };
   root.querySelector('#wizard-next').onclick=()=>{if(state.step<4){state.step++;renderStep()}else{showView('loading');setTimeout(() => { if (root.querySelector('#app-loading').classList.contains('active')) generateWorkspace(); }, localWorkspace ? 250 : 10000 + Math.random() * 5000)}};root.querySelector('#wizard-back').onclick=()=>{if(state.step>1){state.step--;renderStep()}};
