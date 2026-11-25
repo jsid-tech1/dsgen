@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>DSGen Importer</title>
+<style>
+  body { font: 13px system-ui; margin: 16px; color: #222; }
+  textarea { box-sizing: border-box; width: 100%; min-height: 140px; margin: 8px 0; }
+  button { background: #171717; color: white; padding: 8px 12px; border: 0; border-radius: 6px; }
+</style>
+<label for="payload">Paste your DSGen export</label>
+<textarea id="payload" autofocus spellcheck="false"></textarea>
+<button type="button" id="import">Import design system</button>
+<p id="status" role="status"></p>
+<script>
+  const button = document.getElementById("import");
+  const payload = document.getElementById("payload");
+  const status = document.getElementById("status");
+  button.onclick = () => {
+    button.disabled = true;
+    status.textContent = "Importing…";
+    parent.postMessage({ pluginMessage: { json: payload.value } }, "*");
+  };
+  onmessage = ({ data }) => {
+    if (!data.pluginMessage) return;
+    status.textContent = data.pluginMessage.status;
+    button.disabled = false;
+  };
+</script>

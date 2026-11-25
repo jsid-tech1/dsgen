@@ -759,6 +759,68 @@
   publishButton.type = "button";
   publishButton.addEventListener("click", () => openPublishReview());
   workspaceHeader?.append(publishButton);
+  const figmaButton = make("button", "app-button ghost", "Download Figma file");
+  figmaButton.type = "button";
+  figmaButton.addEventListener("click", () => {
+    const draft = draftFromCurrentEditor();
+    const workspace = root.querySelector("#app-workspace");
+    const token = ($type, $value) => ({ $type, $value });
+    const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+    const colorToken = value => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = value;
+      context.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+      return token("color", { colorSpace: "srgb", components: [r / 255, g / 255, b / 255], alpha: a / 255 });
+    };
+    const dimensions = {
+      radius: "borderTopLeftRadius", "padding-top": "paddingTop", "padding-right": "paddingRight",
+      "padding-bottom": "paddingBottom", "padding-left": "paddingLeft", "border-width": "borderTopWidth",
+    };
+    function componentTokens(node) {
+      const style = getComputedStyle(node);
+      return {
+        fill: colorToken(style.backgroundColor),
+        text: colorToken(style.color),
+        border: colorToken(style.borderTopColor),
+        ...Object.fromEntries(Object.entries(dimensions).map(([name, property]) =>
+          [name, token("number", parseFloat(style[property]) || 0)])),
+      };
+    }
+    function samples(selector, names) {
+      return Object.fromEntries([...workspace.querySelectorAll(selector)].map((node, index) =>
+        [names[index].toLowerCase(), componentTokens(node)]));
+    }
+    const { colors, typography } = draft.tokens;
+    const presets = globalThis.designPresets;
+    const tokens = {
+      color: {
+        ...Object.fromEntries(Object.entries(colors).map(([name, value]) => [name, colorToken(value)])),
+        "on-primary": colorToken(presets.ink(colors.primary)),
+        "on-accent": colorToken(presets.ink(colors.accent)),
+        "on-surface": colorToken(presets.ink(colors.surface)),
+      },
+      typography: {
+        family: token("fontFamily", typography.fontFamily),
+        ...Object.fromEntries(Object.entries(typography.scale).map(([name, size]) => [name, token("number", size)])),
+      },
+      button: samples(".token-panel .button-sample", draft.components.buttons),
+      card: samples(".token-panel .card-sample", draft.components.cards),
+    };
+    const file = new Blob([JSON.stringify(tokens, null, 2) + "\n"], { type: "application/json" });
+    const url = URL.createObjectURL(file);
+    const link = make("a");
+    const filename = draft.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    link.href = url;
+    link.download = (filename || "dsgen") + ".tokens.json";
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showSuccess("Variables download started. In Figma, open Variables and choose Import.");
+  });
+  workspaceHeader?.append(figmaButton);
+
 
   if (location.pathname === "/community") {
     document.querySelector("#community-link").setAttribute("aria-current", "page");
