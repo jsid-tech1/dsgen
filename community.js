@@ -40,7 +40,7 @@
     .community-preview.variant-brutalist,.community-preview.variant-neo-brutalist{background:var(--community-primary,#3854ef);border-radius:3px}
     .community-preview.variant-brutalist .preview-sample,.community-preview.variant-neo-brutalist .preview-sample{border:2px solid #111;border-radius:2px;box-shadow:3px 3px 0 #111;background:#fff}
     .community-preview.variant-brutalist .preview-type,.community-preview.variant-neo-brutalist .preview-type{font-weight:600;letter-spacing:-.07em;color:#111}
-    .community-preview.variant-glassmorphism{background:linear-gradient(135deg,var(--community-primary,#3854ef),var(--community-secondary,#70a4ff))}
+    .community-preview.variant-glassmorphism{background:var(--community-secondary,#70a4ff)}
     .community-preview.variant-glassmorphism .preview-sample{background:#ffffffa8;backdrop-filter:blur(9px);border:1px solid #ffffffb8}
     .community-preview.variant-glassmorphism .preview-chip{background:#ffffff90;backdrop-filter:blur(8px);border-color:#ffffffb8}
     .community-preview.variant-neumorphic{background:var(--community-surface,#eef0f7)}
@@ -74,7 +74,7 @@
     .community-variant-preview .preview-device.variant-material-design{border-radius:18px;box-shadow:0 3px 8px #0002}
     .community-variant-preview .preview-device.variant-playful{border-radius:36px}
     .community-variant-preview .preview-device.variant-corporate{border-radius:8px}
-    .community-variant-preview .preview-hero{background:linear-gradient(135deg,var(--preview-primary),var(--preview-secondary))}
+    .community-variant-preview .preview-hero{background:var(--preview-primary)}
     .community-variant-preview .preview-button{background:var(--preview-accent);color:#fff}
     .community-variant-preview .preview-device.variant-brutalist .preview-button,.community-variant-preview .preview-device.variant-neo-brutalist .preview-button{border:2px solid #111;border-radius:2px;box-shadow:3px 3px 0 #111}
     .community-variant-preview .preview-device.variant-glassmorphism .preview-hero{opacity:.78}
@@ -217,19 +217,19 @@
     creatorLink.type = "button";
     creatorLink.addEventListener("click", (event) => {
       event.stopPropagation();
-      openCreator(system.creatorId);
+      withPending(creatorLink, "Opening…", () => openCreator(system.creatorId));
     });
     creator.append(creatorLink);
     const information = make("p", "", `${system.wizard?.styles?.join(", ") || "Design system"} · ${platformLabel(system.wizard?.platform)}`);
     const actions = make("div", "community-card-actions");
     const view = make("button", "app-button", "View system");
     view.type = "button";
-    view.addEventListener("click", (event) => { event.stopPropagation(); openPublicSystem(system.id); });
+    view.addEventListener("click", (event) => { event.stopPropagation(); withPending(view, "Opening…", () => openPublicSystem(system.id)); });
     actions.append(information, view);
     meta.append(title, creator, actions);
     card.append(preview, meta);
     card.addEventListener("click", (event) => {
-      if (!event.target.closest("button")) openPublicSystem(system.id);
+      if (!event.target.closest("button")) withPending(view, "Opening…", () => openPublicSystem(system.id));
     });
     return card;
   }
@@ -311,47 +311,6 @@
     }
   }
 
-  function detailTokenGroup(label, values) {
-    const group = make("div", "community-token-group");
-    group.append(make("div", "community-token-label", label));
-    if (label === "Colors") {
-      const row = make("div", "community-token-colors");
-      Object.entries(values || {}).forEach(([name, hex]) => {
-        const item = make("div", "community-token-color");
-        const swatch = make("i");
-        swatch.style.backgroundColor = color(hex, "#eeeeee");
-        item.append(swatch, make("span", "", `${name}: ${hex}`));
-        row.append(item);
-      });
-      group.append(row);
-    } else if (Array.isArray(values)) {
-      values.forEach((value) => group.append(make("div", "detail-row", value)));
-    } else {
-      Object.entries(values || {}).forEach(([name, value]) => group.append(make("div", "detail-row", `${name}: ${String(value)}`)));
-    }
-    return group;
-  }
-
-  function renderLargePreview(host, system) {
-    const colors = system.tokens?.colors || {};
-    const styleName = system.wizard?.styles?.[0] || "";
-    const device = make("div", `preview-device phone variant-${escapeStyle(styleName)}`);
-    const primary = color(colors.primary, "#3854ef");
-    const secondary = color(colors.secondary, "#70a4ff");
-    const accent = color(colors.accent, "#12a4a7");
-    device.style.setProperty("--preview-primary", primary);
-    device.style.setProperty("--preview-secondary", secondary);
-    device.style.setProperty("--preview-accent", accent);
-    device.style.setProperty("--preview-surface", color(colors.surface, "#ffffff"));
-    const hero = make("div", "preview-hero");
-    const title = make("h4", "", system.name);
-    const description = make("p", "", system.description || "Design system preview");
-    const primaryButton = make("button", "preview-button", system.components?.buttons?.[0] || "Primary");
-    const secondaryButton = make("button", "component-pill", system.components?.buttons?.[1] || "Secondary");
-    device.append(hero, title, description, primaryButton, secondaryButton);
-    host.replaceChildren(device);
-  }
-
   function systemDetailContent(system) {
     const detail = root.querySelector("#community-detail-content");
     detail.replaceChildren();
@@ -360,7 +319,7 @@
     heading.append(make("div", "app-kicker", "Published design system"), make("h1", "", system.name), make("p", "app-subtitle", system.description || ""));
     const creatorButton = make("button", "app-button ghost", `by ${system.creatorName}`);
     creatorButton.type = "button";
-    creatorButton.addEventListener("click", () => openCreator(system.creatorId));
+    creatorButton.addEventListener("click", () => withPending(creatorButton, "Opening…", () => openCreator(system.creatorId)));
     head.append(heading, creatorButton);
     const meta = make("div", "community-detail-meta");
     meta.append(make("span", "component-pill", system.wizard?.styles?.join(", ") || "Style not specified"));
@@ -368,38 +327,25 @@
     if (system.copiedFrom) {
       meta.append(make("span", "community-source-note", `Based on ${system.copiedFrom.systemName} · originally by ${system.copiedFrom.creatorName}`));
     }
-    const layout = make("div", "community-detail-layout");
-    const dataPanel = make("aside", "token-panel");
-    dataPanel.append(make("h3", "", "Design system details"));
-    dataPanel.append(detailTokenGroup("Colors", system.tokens?.colors));
-    dataPanel.append(detailTokenGroup("Typography", {
-      fontFamily: system.tokens?.typography?.fontFamily || "Not provided",
-      scale: Object.values(system.tokens?.typography?.scale || {}).join(" / ") || "Not provided",
-    }));
-    dataPanel.append(detailTokenGroup("Buttons", system.components?.buttons || []));
-    dataPanel.append(detailTokenGroup("Cards", system.components?.cards || []));
-    dataPanel.append(make("p", "community-source-note", "Spacing, grid, and component-specific shape/shadow tokens are not currently available from the editor."));
-    if (system.wizard?.customStyleDescription) {
-      dataPanel.append(detailTokenGroup("Style notes", { custom: system.wizard.customStyleDescription }));
-    }
-    const previewPanel = make("section", "mockup-panel");
-    previewPanel.append(make("h3", "", "Live preview"));
-    const stage = make("div", "community-variant-preview");
-    renderLargePreview(stage, system);
-    previewPanel.append(stage);
+    const layout = dashboard.renderPublishedWorkspace(system);
+    const previewPanel = layout.querySelector(".mockup-panel");
     const actions = make("div", "community-detail-actions");
     const copy = make("button", "app-button", "Use this system");
     copy.type = "button";
-    copy.addEventListener("click", () => {
+    const copyStatus = make("p", "community-status");
+    copyStatus.setAttribute("role", "status");
+    copy.addEventListener("click", async () => {
       if (!localWorkspace && !firebaseAuth.currentUser) {
         document.querySelector("[data-auth-trigger]").click();
         return;
       }
-      copyPublishedSystem(system.id);
+      await withPending(copy, "Creating copy…", async () => {
+        copyStatus.textContent = "";
+        await copyPublishedSystem(system.id, copyStatus);
+      });
     });
     actions.append(copy);
-    previewPanel.append(actions);
-    layout.append(dataPanel, previewPanel);
+    previewPanel.append(actions, copyStatus);
     detail.append(head, meta, layout);
   }
 
@@ -409,8 +355,7 @@
       systemDetailContent(result.system);
       navigate("community-detail");
     } catch (error) {
-      root.querySelector("#community-status").textContent = error.message;
-      navigate("community");
+      showSuccess(error.message);
     }
   }
 
@@ -429,8 +374,7 @@
       panel.append(head, grid);
       navigate("community-creator");
     } catch (error) {
-      root.querySelector("#community-status").textContent = error.message;
-      navigate("community");
+      showSuccess(error.message);
     }
   }
 
@@ -447,6 +391,12 @@
   titleInput.maxLength = 80;
   titleInput.setAttribute("aria-label", "Design system name");
   title.replaceChildren(titleButton, titleInput);
+  const descriptionInput = make("textarea", "text-input");
+  descriptionInput.rows = 2;
+  descriptionInput.maxLength = 300;
+  descriptionInput.placeholder = "Add a design system description";
+  descriptionInput.setAttribute("aria-label", "Design system description");
+  title.after(descriptionInput);
 
   function setEditorName(name) {
     titleText.textContent = name;
@@ -489,6 +439,21 @@
     toastTimer = window.setTimeout(() => { toast.textContent = ""; }, 4200);
   }
 
+  async function withPending(button, label, action) {
+    if (button.disabled) return;
+    const original = button.textContent;
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.textContent = label;
+    try {
+      return await action();
+    } finally {
+      button.textContent = original;
+      button.removeAttribute("aria-busy");
+      button.disabled = false;
+    }
+  }
+
   function draftFromCurrentEditor() {
     const wizard = dashboard.getWizardState();
     const editorColors = {};
@@ -498,7 +463,7 @@
     return {
       schemaVersion: 1,
       name: titleText.textContent,
-      description: description.slice(0, 300),
+      description: descriptionInput.value.trim(),
       wizard: {
         platform: wizard.platform || "web",
         styles: wizard.styles || [],
@@ -549,6 +514,7 @@
     if (devicePreview) devicePreview.className = `preview-device ${devices.has(device) ? device : "phone"}`;
     root.querySelectorAll("#app-workspace [data-device]").forEach((button) => button.classList.toggle("active", button.dataset.device === device));
     setEditorName(system.name);
+    descriptionInput.value = system.description || "";
     ensureWorkspaceStatus().textContent = "";
     dashboard.showView("workspace");
   }
@@ -617,24 +583,24 @@
     const actions = make("div", "community-owner-actions");
     const open = make("button", "app-button ghost", system.sharing?.status === "published" ? "Edit" : "Open");
     open.type = "button";
-    open.addEventListener("click", () => loadOwnedSystem(system.id));
+    open.addEventListener("click", () => withPending(open, "Opening…", () => loadOwnedSystem(system.id)));
     actions.append(open);
     if (system.sharing?.status === "published") {
       const unpublish = make("button", "app-button ghost", "Unpublish");
       unpublish.type = "button";
-      unpublish.addEventListener("click", () => unpublishSystem(system.id));
+      unpublish.addEventListener("click", () => withPending(unpublish, "Unpublishing…", () => unpublishSystem(system.id)));
       actions.append(unpublish);
     } else {
       const publish = make("button", "app-button", "Publish");
       publish.type = "button";
-      publish.addEventListener("click", async () => {
+      publish.addEventListener("click", () => withPending(publish, "Opening…", async () => {
         if (await loadOwnedSystem(system.id)) openPublishReview();
-      });
+      }));
       actions.append(publish);
     }
     const remove = make("button", "app-button ghost", "Delete");
     remove.type = "button";
-    remove.addEventListener("click", () => deleteSystem(system.id));
+    remove.addEventListener("click", () => withPending(remove, "Deleting…", () => deleteSystem(system.id)));
     actions.append(remove);
     info.append(actions);
     card.append(preview, info);
@@ -741,14 +707,14 @@
     }
   });
 
-  async function copyPublishedSystem(id) {
+  async function copyPublishedSystem(id, status) {
     try {
       const result = await request("/api/community/copy", { method: "POST", body: { id } });
       await refreshOwnedSystems();
       restoreSystem(result.system);
       ensureWorkspaceStatus().textContent = "Independent copy created in My systems.";
     } catch (error) {
-      root.querySelector("#community-status").textContent = error.message;
+      status.textContent = error.message;
     }
   }
 
@@ -772,6 +738,7 @@
     if (event.target.closest('[data-start-new], [data-app-view="new"]')) {
       currentSystemId = null;
       setEditorName(untitledName);
+      descriptionInput.value = "";
       ensureWorkspaceStatus().textContent = "";
     }
   }, true);
