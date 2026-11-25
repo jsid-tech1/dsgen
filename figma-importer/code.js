@@ -77,12 +77,15 @@ figma.ui.onmessage = async ({ json }) => {
       });
       return node;
     }
-    function component(group, title, spec, card) {
+    function component(group, title, spec, card, variantName = title) {
       const node = layout(figma.createComponent());
       sheet.appendChild(node);
-      node.name = group + "/" + title;
-      const path = group + "/" + title + "/";
+      node.name = variantName;
+      const path = group + "/" + variantName.replaceAll(", ", "/").replaceAll("=", "-") + "/";
       const fill = rgb(spec.fill);
+      if (spec.state === "Hover") {
+        fill.r *= .92; fill.g *= .92; fill.b *= .92;
+      }
       const role = Object.keys(palette).find(key => ["r","g","b","a"].every(channel => palette[key][channel] === fill[channel]));
       node.fills = [paint(role ? paletteTokens[role] : variable(path + "Fill", "COLOR", fill))];
       const textColor = variable(path + "Text", "COLOR", rgb(spec.text));
@@ -120,9 +123,26 @@ figma.ui.onmessage = async ({ json }) => {
       label(row, role + " " + colors[role]);
     }
     for (const role of Object.keys(type)) label(sheet, "Aa · " + role + " · " + typography.scale[role] + " px", role);
-    const buttons = system.components.buttons.slice(0, 3).map((title, i) => component("Buttons", title, samples.buttons[i]));
-    const cards = system.components.cards.slice(0, 2).map((title, i) => component("Cards", title, samples.surfaces[i], samples.cards[i]));
+    const buttons = samples.buttons.slice(0, 12).map((spec, i) => {
+      const variant = spec.variant || system.components.buttons[i];
+      return component("Buttons", variant, spec, null, "Type=" + variant + ", State=" + (spec.state || "Default"));
+    });
+    const cards = system.components.cards.slice(0, 2).map((title, i) =>
+      component("Cards", title, samples.surfaces[i], samples.cards[i], "Type=" + title));
     await Promise.all(textBindings.map(bind => bind()));
+    function variantSet(nodes, name, columns) {
+      const set = figma.combineAsVariants(nodes, sheet);
+      set.name = name;
+      const cellWidth = Math.max(...nodes.map(node => node.width)) + 16;
+      const cellHeight = Math.max(...nodes.map(node => node.height)) + 16;
+      nodes.forEach((node, index) => {
+        node.x = 16 + (index % columns) * cellWidth;
+        node.y = 16 + Math.floor(index / columns) * cellHeight;
+      });
+      set.resize(16 + Math.min(nodes.length, columns) * cellWidth, 16 + Math.ceil(nodes.length / columns) * cellHeight);
+    }
+    variantSet(buttons, "Buttons", 3);
+    variantSet(cards, "Cards", 2);
     const preview = layout(figma.createFrame());
     sheet.appendChild(preview);
     preview.name = "Component preview";

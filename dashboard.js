@@ -182,7 +182,11 @@
     #app-workspace[data-preset="glass"] .preview-story h4 {margin-top:0}
     @media(prefers-reduced-motion:reduce) {#app-workspace[data-preset] :is(.preview-button,.button-sample) {transition:none}}
   `;
-  presetStyles.textContent = presetStyles.textContent.replaceAll('#app-workspace', ':is(#app-workspace,.published-workspace)');
+  presetStyles.textContent = presetStyles.textContent
+    .replaceAll('#app-workspace', ':is(#app-workspace,.published-workspace)')
+    .replaceAll('.button-sample):hover', '.button-sample):is(:hover,[data-export-state="Hover"])')
+    .replaceAll('.button-sample):active', '.button-sample):is(:active,[data-export-state="Pressed"])')
+    .replaceAll('.button-sample):focus-visible', '.button-sample):is(:focus-visible,[data-export-state="Focus"])');
   document.head.append(presetStyles);
 
   const fontPicker = document.createElement('details');

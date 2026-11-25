@@ -820,6 +820,97 @@
     showSuccess("Variables download started. In Figma, open Variables and choose Import.");
   });
   workspaceHeader?.append(figmaButton);
+  const workspaceActions = make("div", "workspace-actions");
+  workspaceActions.style.cssText = "display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;flex:0 1 auto";
+  workspaceActions.setAttribute("role", "group");
+  workspaceActions.setAttribute("aria-label", "Design system actions");
+  const copyFigma = make("button", "app-button ghost", "Copy to Figma");
+  copyFigma.type = "button";
+  workspaceActions.append(saveButton, publishButton, figmaButton, copyFigma);
+  workspaceHeader.append(workspaceActions);
+
+  let exporter;
+  function loadFigmaExporter() {
+    exporter ??= Promise.all([
+      import("https://esm.sh/@zumer/snapdom@3.8.3?bundle"),
+      import("https://esm.sh/@zumer/snapdom-vector@1.0.4?bundle"),
+    ]).catch(error => {
+      exporter = undefined;
+      throw error;
+    });
+    return exporter;
+  }
+  for (const event of ["pointerenter", "focus"]) {
+    copyFigma.addEventListener(event, () => loadFigmaExporter().catch(() => {}));
+  }
+  function makeFigmaCapture(draft) {
+    const workspace = root.querySelector("#app-workspace");
+    const capture = workspace.cloneNode(false);
+    capture.classList.add("active");
+    capture.style.cssText += ";position:fixed;left:-12000px;top:0;min-height:0;width:440px;padding:16px;background:#f7f7f5";
+    const panel = workspace.querySelector(".token-panel").cloneNode(true);
+    panel.querySelector(".font-picker").replaceWith(make("p", "", draft.tokens.typography.fontFamily));
+    panel.querySelectorAll("[data-token]").forEach(input => input.remove());
+    const row = panel.querySelector(".button-sample").parentElement;
+    const originals = [...row.children];
+    row.replaceChildren();
+    // The clipboard converter turns flex rows into Figma auto layout, which
+    // does not preserve the old flex-basis wrapping trick for state groups.
+    row.style.cssText = "display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:14px";
+    for (const state of ["Default", "Hover", "Pressed", "Focus"]) {
+      const group = make("div");
+      group.style.cssText = "display:flex;flex-direction:column;gap:6px";
+      const label = make("small", "", state);
+      label.style.cssText = "display:block;font-size:12px;line-height:16px";
+      group.append(label);
+      const variants = make("div");
+      variants.style.cssText = "display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:8px;padding:4px";
+      originals.forEach((source, index) => {
+        const button = source.cloneNode(true);
+        button.dataset.exportState = state;
+        button.dataset.variant = draft.components.buttons[index];
+        const { primary, surface, secondary } = draft.tokens.colors;
+        const { mix, ink } = globalThis.designPresets;
+        const fill = capture.dataset.preset === "glass" ? mix(index === 0 ? primary : surface, secondary, .92) : index === 0 ? primary : surface;
+        button.style.setProperty("background-color", index === 2 ? "transparent" : fill, "important");
+        button.style.setProperty("background-image", "none", "important");
+        button.style.setProperty("color", ink(index === 2 ? surface : fill), "important");
+        button.style.setProperty("backdrop-filter", "none", "important");
+        variants.append(button);
+      });
+      group.append(variants);
+      row.append(group);
+    }
+    if (capture.dataset.preset === "glass") {
+      const { primary, secondary, surface } = draft.tokens.colors;
+      const { mix, ink } = globalThis.designPresets;
+      panel.querySelectorAll(".card-sample").forEach((card, index) => {
+        const fill = mix(index === 0 ? primary : surface, secondary, .92);
+        card.style.setProperty("background", fill, "important");
+        card.style.setProperty("color", ink(fill), "important");
+        card.style.setProperty("backdrop-filter", "none", "important");
+      });
+    }
+    capture.append(make("h2", "", draft.name), panel);
+    workspace.after(capture);
+    return capture;
+  }
+
+  copyFigma.onclick = () => withPending(copyFigma, "Copying…", async () => {
+    const status = ensureWorkspaceStatus();
+    status.textContent = "";
+    const capture = makeFigmaCapture(draftFromCurrentEditor());
+    try {
+      const [{ snapdom }, { default: vector }] = await loadFigmaExporter();
+      const shot = await snapdom(capture, { plugins: [vector()] });
+      await shot.toFigma();
+      showSuccess("Copied editable layers. Paste onto the Figma Design canvas.");
+    } catch {
+      status.textContent = "Couldn’t copy layers. Check your connection and clipboard permissions, then try again.";
+    } finally {
+      capture.remove();
+    }
+  });
 
 
   if (location.pathname === "/community") {
