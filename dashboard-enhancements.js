@@ -24,7 +24,7 @@
   const style = document.createElement('style');
   style.textContent = `
     ${iconRules}
-    #app-dashboard{--canvas:#f8f7ef;--ink:#181915;--accent:var(--theme-accent);--line:#d9d8cd;background:var(--canvas);color:var(--ink)}
+    #app-dashboard{--canvas:#ffffff;--ink:#181915;--accent:var(--theme-accent);--line:#d9d8cd;background:var(--canvas);color:var(--ink)}
     .app-main{background:var(--canvas);min-width:0}.app-sidebar{background:#141512}.app-brand{font-size:28px;color:var(--accent)}
     .app-nav button,.app-signout,.mockup-toolbar [data-device]{display:inline-flex;align-items:center;gap:10px;min-height:44px}
     .app-nav button{color:#c6c6bd}.app-nav button.active{background:var(--accent);color:var(--ink);font-weight:600}
@@ -79,7 +79,7 @@
       #app-dashboard .app-button.ghost:not(:disabled):hover,.app-nav button:not(.active):hover{background:var(--theme-wash);color:var(--ink)}
       .option-card:hover{border-color:var(--theme-dark)}
     }
-    .community-toolbar{margin-top:0}.community-filter.active{background:#29251e}.community-review-dialog{background:#faf9f2}
+    .community-toolbar{margin-top:0}.community-filter.active{background:#29251e}.community-review-dialog{background:#ffffff}
     .system-title-icon{display:inline-flex;align-items:center;color:#55564e}.workspace-header{padding-bottom:20px;border-bottom:1px solid var(--line)}
     #app-dashboard :is(button,input,select,textarea):focus-visible{outline:3px solid #6654cf;outline-offset:2px}
     @media(max-width:1000px){.app-sidebar{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px}.public-community .app-sidebar{display:none}.app-brand,.app-signout{margin:0}.app-nav{display:flex;flex-wrap:wrap;gap:4px}}
