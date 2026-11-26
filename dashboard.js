@@ -39,7 +39,7 @@
         <section class="app-view" id="app-workspace"><div class="workspace"><div class="workspace-header"><div><div class="app-kicker">Generated system</div><h1 class="app-title">Your design language</h1><p class="app-subtitle">Edit a token on the left and see the product preview respond instantly.</p></div><button class="app-button" data-app-view="home">Save to my systems</button></div><div class="workspace-layout"><aside class="token-panel"><h3>Design system</h3><div class="token-group"><div class="token-group-title">Colors</div><div class="swatches"><label class="swatch-edit"><input type="color" value="#3854ef" data-token="primary"><span style="background:#3854ef"></span></label><label class="swatch-edit"><input type="color" value="#70a4ff" data-token="secondary"><span style="background:#70a4ff"></span></label><label class="swatch-edit"><input type="color" value="#12a4a7" data-token="accent"><span style="background:#12a4a7"></span></label><label class="swatch-edit"><input type="color" value="#eef0f7" data-token="surface"><span style="background:#eef0f7"></span></label></div></div><div class="token-group"><div class="token-group-title">Typography</div><div class="type-demo">Aa</div><small>Inter · 16 / 24 / 32</small></div><div class="token-group"><div class="token-group-title">Buttons</div><div class="component-row"><span class="component-pill" style="background:#3854ef;color:white">Primary</span><span class="component-pill">Secondary</span><span class="component-pill" style="color:#12a4a7">Tertiary</span></div></div><div class="token-group"><div class="token-group-title">Cards</div><div class="component-row"><span class="component-pill">Card / Default</span><span class="component-pill">Card / Featured</span></div></div></aside><section class="mockup-panel"><h3>Preview</h3><div class="mockup-toolbar"><button class="active" data-device="phone">Mobile</button><button data-device="tablet">Tablet</button><button data-device="laptop">Laptop</button></div><div class="mockup-stage"><div class="preview-device phone" id="preview-device"><div class="preview-hero"></div><h4>Great product starts here</h4><p>Build consistent, functional, and beautiful experiences.</p><button class="preview-button">Get started</button></div></div></section></div></div></section>
       </main>
     </div>`;
-  document.body.appendChild(root);
+  document.body.insertBefore(root, document.querySelector('body > footer'));
 
   const views = [...root.querySelectorAll('.app-view')];
   const showView = (id) => {
@@ -610,7 +610,7 @@
   function updateLayout(user) {
     const browsingCommunity = location.pathname === '/community';
     const previewLanding = localWorkspace && location.pathname === '/landing';
-    const workspace = (localWorkspace && !previewLanding) || Boolean(user);
+    const workspace = (localWorkspace && !previewLanding && !browsingCommunity) || Boolean(user);
     if (previewLanding) {
       document.querySelectorAll('[data-auth-trigger]').forEach(button => {
         button.addEventListener('click', event => {
