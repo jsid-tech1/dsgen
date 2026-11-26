@@ -26,14 +26,16 @@
     ${iconRules}
     #app-dashboard{--canvas:#ffffff;--ink:#181915;--accent:var(--theme-accent);--line:#d9d8cd;background:var(--canvas);color:var(--ink)}
     .app-main{background:var(--canvas);min-width:0}.app-sidebar{background:#141512}.app-brand{font-size:28px;color:var(--accent)}
-    @media(min-width:1001px){.app-sidebar{position:relative}.app-brand{margin-bottom:60px}.sidebar-toggle{position:absolute;top:26px;right:20px;margin:0}.sidebar-collapsed .sidebar-toggle{right:20px}}
+    .sidebar-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;margin-bottom:60px}
+    .sidebar-heading .app-brand{margin:0 0 0 12px}
+    @media(max-width:1000px){.sidebar-heading{margin-bottom:0}.sidebar-heading .app-brand{margin:0}}
     .app-nav button,.app-signout,.mockup-toolbar [data-device]{display:inline-flex;align-items:center;gap:10px;min-height:44px}
     .app-nav button{color:#c6c6bd}.app-nav button.active{background:var(--accent);color:var(--ink);font-weight:600}
     @media(min-width:1001px){
       #app-dashboard.sidebar-collapsed .app-shell{grid-template-columns:76px minmax(0,1fr)}
       #app-dashboard.sidebar-collapsed .app-sidebar{padding-inline:12px}
-      #app-dashboard.sidebar-collapsed .app-brand{font-size:0;margin:0 0 60px;text-align:center}
-      #app-dashboard.sidebar-collapsed .app-brand::after{content:"DS";font-size:20px;letter-spacing:-.08em}
+      #app-dashboard.sidebar-collapsed .sidebar-heading{justify-content:center;gap:0}
+      #app-dashboard.sidebar-collapsed .app-brand{display:none}
       #app-dashboard.sidebar-collapsed .app-nav button,#app-dashboard.sidebar-collapsed .app-signout{justify-content:center;font-size:0;gap:0}
       #app-dashboard.sidebar-collapsed .app-nav button::before,#app-dashboard.sidebar-collapsed .app-signout::before{--icon-size:22px}
       #app-dashboard.sidebar-collapsed .app-side-note{display:none}
@@ -42,7 +44,7 @@
       #app-dashboard.sidebar-collapsed .sidebar-account-name{display:none}
       #app-dashboard.sidebar-collapsed .sidebar-account-menu{width:150px}
     }
-    .sidebar-toggle{align-self:flex-end;display:grid;place-items:center;width:36px;height:36px;margin:-48px 0 52px;padding:0;border:0;border-radius:9px;background:transparent;color:#aaa;cursor:pointer}
+    .sidebar-toggle{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;margin:0;padding:0;border:0;border-radius:9px;background:transparent;color:#aaa;cursor:pointer}
     .sidebar-toggle svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     .sidebar-toggle:hover{background:#292a26}.sidebar-toggle:focus-visible{outline:3px solid #a797cf;outline-offset:2px}
     .app-signout{margin-top:16px;padding:10px 12px;border:1px solid #58594f;border-radius:10px;background:transparent;color:white}
@@ -123,7 +125,11 @@
     toggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
     toggle.setAttribute('aria-expanded', String(!collapsed));
   };
-  sidebar.insertBefore(toggle, sidebar.querySelector('.app-nav'));
+  const heading = document.createElement('div');
+  heading.className = 'sidebar-heading';
+  const brand = sidebar.querySelector('.app-brand');
+  sidebar.insertBefore(heading, brand);
+  heading.append(brand, toggle);
   setCollapsed(false);
   toggle.addEventListener('click', () => setCollapsed(!dashboard.classList.contains('sidebar-collapsed')));
   sidebar.querySelectorAll('.app-nav button').forEach(button => {
