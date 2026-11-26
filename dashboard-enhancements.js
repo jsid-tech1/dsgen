@@ -37,11 +37,17 @@
       #app-dashboard.sidebar-collapsed .app-nav button::before,#app-dashboard.sidebar-collapsed .app-signout::before{--icon-size:22px}
       #app-dashboard.sidebar-collapsed .app-side-note{display:none}
       #app-dashboard.sidebar-collapsed .sidebar-toggle{margin-inline:auto}
+      #app-dashboard.sidebar-collapsed .sidebar-profile{justify-content:center;padding:9px 0}
+      #app-dashboard.sidebar-collapsed .sidebar-account-name{display:none}
+      #app-dashboard.sidebar-collapsed .sidebar-account-menu{width:150px}
     }
     .sidebar-toggle{align-self:flex-end;display:grid;place-items:center;width:36px;height:36px;margin:-48px 0 52px;padding:0;border:0;border-radius:9px;background:transparent;color:#aaa;cursor:pointer}
     .sidebar-toggle svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     .sidebar-toggle:hover{background:#292a26}.sidebar-toggle:focus-visible{outline:3px solid #a797cf;outline-offset:2px}
     .app-signout{margin-top:16px;padding:10px 12px;border:1px solid #58594f;border-radius:10px;background:transparent;color:white}
+    .sidebar-account{position:relative;margin-top:16px}.sidebar-account[hidden]{display:none}.sidebar-profile{width:100%;display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #58594f;border-radius:10px;background:transparent;color:white;text-align:left;cursor:pointer}
+    .sidebar-avatar{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--accent);color:#141512;font-weight:650;overflow:hidden}.sidebar-avatar img{width:100%;height:100%;object-fit:cover}
+    .sidebar-account-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.sidebar-account-menu{position:absolute;bottom:calc(100% + 8px);left:0;width:100%;padding:5px;background:#252621;border:1px solid #58594f;border-radius:10px;z-index:5}.sidebar-account-menu[hidden]{display:none}.sidebar-account-menu button{width:100%;padding:10px;border:0;border-radius:7px;background:transparent;color:#fff;text-align:left;cursor:pointer}.sidebar-account-menu button:hover{background:#393a34}
     .app-topline,.workspace-header{gap:20px;flex-wrap:wrap}.app-topline>div:first-child,.workspace-header>div:first-child{flex:1 1 270px;min-width:0}
     #app-dashboard .app-title,.wizard h2{font-size:clamp(32px,3.7vw,58px);font-weight:550;letter-spacing:-.06em;line-height:1.04}
     .app-kicker,.app-subtitle,.wizard-copy,.progress-row{color:#56574e}.app-kicker{font-weight:650}
@@ -94,7 +100,7 @@
     .community-toolbar{margin-top:0}.community-filter.active{background:#29251e}.community-review-dialog{background:#ffffff}
     .system-title-icon{display:inline-flex;align-items:center;color:#55564e}.workspace-header{padding-bottom:20px;border-bottom:1px solid var(--line)}
     #app-dashboard :is(button,input,select,textarea):focus-visible{outline:3px solid #6654cf;outline-offset:2px}
-    @media(max-width:1000px){.app-sidebar{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px}.public-community .app-sidebar{display:none}.app-brand,.app-signout{margin:0}.app-nav{display:flex;flex-wrap:wrap;gap:4px}.sidebar-toggle{display:none}}
+    @media(max-width:1000px){.app-sidebar{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px}.public-community .app-sidebar{display:none}.app-brand,.sidebar-account{margin:0}.app-nav{display:flex;flex-wrap:wrap;gap:4px}.sidebar-toggle{display:none}}
     @media(max-width:650px){.app-sidebar{padding:14px 16px}.app-nav{order:3;width:100%;justify-content:space-between}.app-nav button{gap:4px;flex-direction:column;justify-content:center;flex:1;padding:6px 2px}.app-signout{margin-left:auto}.app-topline .app-button{margin-right:6px}.wizard-footer{gap:8px;flex-wrap:wrap}.wizard-footer .right-actions{flex-wrap:wrap}.style-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app-main{padding:24px 16px}.community-dialog-actions{flex-wrap:wrap}}
   `;
   document.head.appendChild(style);
@@ -120,10 +126,34 @@
 
   if (localWorkspace) return;
 
-  const signOut = document.createElement('button');
-  signOut.className = 'app-signout';
-  signOut.type = 'button';
-  signOut.textContent = 'Sign out';
-  signOut.addEventListener('click', () => document.querySelector('#sign-out')?.click());
-  dashboard.querySelector('.app-sidebar')?.appendChild(signOut);
+  const account = document.createElement('div');
+  account.className = 'sidebar-account';
+  account.hidden = true;
+  account.innerHTML = '<button type="button" class="sidebar-profile" aria-haspopup="menu" aria-expanded="false"><span class="sidebar-avatar"></span><span class="sidebar-account-name"></span></button><div class="sidebar-account-menu" role="menu" hidden><button type="button" role="menuitem">Sign out</button></div>';
+  sidebar.appendChild(account);
+  const profile = account.querySelector('.sidebar-profile');
+  const menu = account.querySelector('.sidebar-account-menu');
+  const closeMenu = () => { menu.hidden = true; profile.setAttribute('aria-expanded', 'false'); };
+  profile.addEventListener('click', () => { menu.hidden = !menu.hidden; profile.setAttribute('aria-expanded', String(!menu.hidden)); });
+  account.querySelector('[role="menuitem"]').addEventListener('click', () => { closeMenu(); document.querySelector('#sign-out')?.click(); });
+  document.addEventListener('click', event => { if (!account.contains(event.target)) closeMenu(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
+  firebaseAuth.onAuthStateChanged(user => {
+    if (!user) { account.hidden = true; closeMenu(); return; }
+    account.hidden = false;
+    const displayName = user.displayName || user.email || 'Google account';
+    account.querySelector('.sidebar-account-name').textContent = displayName;
+    profile.setAttribute('aria-label', `Account: ${displayName}`);
+    profile.title = displayName;
+    const avatar = account.querySelector('.sidebar-avatar');
+    avatar.replaceChildren();
+    if (user.photoURL) {
+      const image = document.createElement('img');
+      image.src = user.photoURL;
+      image.alt = '';
+      image.referrerPolicy = 'no-referrer';
+      image.onerror = () => { avatar.textContent = displayName[0].toUpperCase(); };
+      avatar.appendChild(image);
+    } else avatar.textContent = displayName[0].toUpperCase();
+  });
 })();
