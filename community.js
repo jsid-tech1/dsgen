@@ -383,7 +383,7 @@
   const titleButton = make("button", "system-title-button");
   titleButton.type = "button";
   const titleText = make("span");
-  const titleIcon = make("span", "system-title-icon", "✎");
+  const titleIcon = make("span", "system-title-icon");
   titleIcon.setAttribute("aria-hidden", "true");
   titleButton.append(titleText, titleIcon);
   const titleInput = make("input", "system-title-input");

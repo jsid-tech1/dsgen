@@ -12,7 +12,7 @@
   root.id = 'app-dashboard';
   root.innerHTML = `
     <div class="app-shell">
-      <aside class="app-sidebar"><div class="app-brand">DSgen</div><nav class="app-nav"><button class="active" data-app-view="home">Overview</button><button data-app-view="systems">My systems</button><button data-app-view="new">Create new</button></nav><div class="app-side-note">Build a consistent design language, one decision at a time.</div></aside>
+      <aside class="app-sidebar"><div class="app-brand">DSGen</div><nav class="app-nav"><button class="active" data-app-view="home">Overview</button><button data-app-view="systems">My systems</button><button data-app-view="new">Create new</button></nav><div class="app-side-note">Build a consistent design language, one decision at a time.</div></aside>
       <main class="app-main">
         <section class="app-view active" id="app-home"><div class="app-topline"><div><div class="app-kicker">Your workspace</div><h1 class="app-title">Good to see you<span id="user-name"></span>.</h1><p class="app-subtitle">Continue shaping your systems or start something new.</p></div><button class="app-button" data-start-new>＋ New design system</button></div><div class="system-grid" id="system-grid"><article class="system-card new" data-start-new><div class="plus">＋</div><h3>Start a new system</h3><p>Answer four quick questions to begin.</p></article><article class="system-card"><div class="system-preview"><div class="mini-bars"><i></i><i></i><i></i></div></div><div><h3>Fitness starter kit</h3><p>Edited 2 days ago · 18 components</p></div></article><article class="system-card"><div class="system-preview" style="background:#ffe2bd"><div class="mini-bars"><i></i><i></i><i></i></div></div><div><h3>Studio editorial</h3><p>Edited 1 week ago · 24 components</p></div></article></div></section>
         <section class="app-view" id="app-systems"><div class="app-topline"><div><div class="app-kicker">Library</div><h1 class="app-title">My design systems</h1><p class="app-subtitle">A home for every visual language you create.</p></div><button class="app-button" data-start-new>＋ New design system</button></div><div class="system-grid"><article class="system-card"><div class="system-preview"><div class="mini-bars"><i></i><i></i><i></i></div></div><div><h3>Fitness starter kit</h3><p>Edited 2 days ago · 18 components</p></div></article><article class="system-card"><div class="system-preview" style="background:#ffe2bd"><div class="mini-bars"><i></i><i></i><i></i></div></div><div><h3>Studio editorial</h3><p>Edited 1 week ago · 24 components</p></div></article><article class="system-card new" data-start-new><div class="plus">＋</div><h3>Create another</h3></article></div></section>
@@ -408,8 +408,8 @@
     showView('workspace');
   }
   const steps = [
-    { title: 'What are you designing for?', copy: 'Choose the platform you’re targeting.', html: () => `<div class="option-grid">${[['mobile','▯','Mobile Application'],['web','▱','Website'],['both','▤','Both Mobile & Web']].map(x => `<button class="option-card ${state.platform===x[0]?'selected':''}" data-platform="${x[0]}"><span class="check">✓</span><div class="option-icon">${x[1]}</div><div class="option-name">${x[2]}</div></button>`).join('')}</div>` },
-    { title: 'Choose your visual direction', copy: 'Pick one style that match your vision.', html: () => { const opts=['Minimalist','Modern','Brutalist','Neo-Brutalist','Neumorphic','Glassmorphism','Material Design','Editorial','Playful','Corporate','Flat Design']; return `<div class="option-grid style-grid">${opts.map(x => `<button class="option-card ${state.styles.includes(x)?'selected':''}" data-style="${x}" aria-pressed="${state.styles.includes(x)}"><span class="check">✓</span><div class="option-icon">✦</div><div class="option-name">${x}</div></button>`).join('')}</div>`; } },
+    { title: 'What are you designing for?', copy: 'Choose the platform you’re targeting.', html: () => `<div class="option-grid">${[['mobile','Mobile app'],['web','Website'],['both','Mobile & web']].map(x => `<button class="option-card ${state.platform===x[0]?'selected':''}" aria-pressed="${state.platform===x[0]}" data-platform="${x[0]}"><span class="check">✓</span><div class="option-icon" aria-hidden="true"></div><div class="option-name">${x[1]}</div></button>`).join('')}</div>` },
+    { title: 'Choose your visual direction', copy: 'Pick one style that matches your vision.', html: () => { const opts=['Minimalist','Modern','Brutalist','Neo-Brutalist','Neumorphic','Glassmorphism','Material Design','Editorial','Playful','Corporate','Flat Design']; return `<div class="option-grid style-grid">${opts.map(x => `<button class="option-card ${state.styles.includes(x)?'selected':''}" data-style="${x}" aria-pressed="${state.styles.includes(x)}"><span class="check">✓</span><div class="option-icon" aria-hidden="true">Aa</div><div class="option-name">${x}</div></button>`).join('')}</div>`; } },
     { title: 'Tell us about your project', copy: 'Give us a little context so we can build a design system that fits your product.', html: () => `<label class="field-label">Project description</label><div class="textarea-wrap"><textarea class="text-input textarea" id="project-description" maxlength="300" placeholder="I’m building a fitness app for beginners that focuses on making workouts simple and accessible..."></textarea><span class="char-count" id="char-count">${state.description.length}/300</span></div><p style="font-size:12px;color:#888;margin-top:10px">Include what your product does, who it’s for and the experience you want to create.</p>` },
     { title: 'Choose your colours', copy: 'Select three colours that represent your brand.', html: () => `<div class="palette-row">${['Primary Colour','Secondary Colour','Accent Colour'].map((x,i)=>`<label class="color-field"><span class="field-label">${x}</span><div class="color-picker"><input type="color" value="${state.colors[i]}" data-color-index="${i}"><strong>${state.colors[i].toUpperCase()}</strong></div><input class="color-hex" value="${state.colors[i]}" maxlength="7" data-hex-index="${i}"></label>`).join('')}</div><button class="app-button ghost suggest-palette" id="suggest-palette">✦ Suggest a palette</button>` }
   ];
@@ -589,7 +589,16 @@
   window.addEventListener('keydown', e => { if(!root.querySelector('#app-loading').classList.contains('active'))return; const snake=root.querySelector('.snake'); if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){snake.style.transform=`translate(${e.key==='ArrowRight'?'12px':e.key==='ArrowLeft'?'-12px':'0'},${e.key==='ArrowDown'?'12px':e.key==='ArrowUp'?'-12px':'0'})`;e.preventDefault()} });
   function updateLayout(user) {
     const browsingCommunity = location.pathname === '/community';
-    const workspace = localWorkspace || Boolean(user);
+    const previewLanding = localWorkspace && location.pathname === '/landing';
+    const workspace = (localWorkspace && !previewLanding) || Boolean(user);
+    if (previewLanding) {
+      document.querySelectorAll('[data-auth-trigger]').forEach(button => {
+        button.addEventListener('click', event => {
+          event.stopImmediatePropagation();
+          location.assign('/');
+        }, { capture: true });
+      });
+    }
     root.classList.toggle('public-community', browsingCommunity && !workspace);
     root.style.display = workspace || browsingCommunity ? 'block' : 'none';
     document.querySelector('header').style.display = workspace ? 'none' : '';

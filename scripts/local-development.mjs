@@ -15,6 +15,9 @@ const folders = { save: new URL(".local-data/save/", project), publish: new URL(
 for (const folder of Object.values(folders)) mkdirSync(folder, { recursive: true });
 
 const staticFiles = new Set(["/index.html", "/auth-ui.js", "/design-presets.js", "/dashboard.js", "/community.js", "/dashboard-enhancements.js"]);
+const demoVideos = new Set(readdirSync(new URL("media/demos/", project))
+  .filter(name => name.endsWith(".webm"))
+  .map(name => "/media/demos/" + name));
 const methods = new Map([
   ["/api/project-keywords", ["POST"]],
   ["/api/systems", ["GET", "POST"]],
@@ -176,7 +179,13 @@ createServer(async (request, response) => {
       return await handleApi(request, response, url, body);
     }
 
-    const path = ["/", "/community"].includes(url.pathname) ? "/index.html" : url.pathname;
+    const path = ["/", "/landing", "/community"].includes(url.pathname) ? "/index.html" : url.pathname;
+    if (demoVideos.has(path)) {
+      if (!requireMethod(request, response, ["GET", "HEAD"])) return;
+      const video = readFileSync(new URL(path.slice(1), project));
+      response.writeHead(200, { "Content-Type": "video/webm", "Content-Length": video.length });
+      return response.end(request.method === "HEAD" ? undefined : video);
+    }
     if (!staticFiles.has(path)) return sendError(response, 404);
     if (!requireMethod(request, response, ["GET", "HEAD"])) return;
     const content = readFileSync(new URL(path.slice(1), project), "utf8");
