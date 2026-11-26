@@ -30,7 +30,7 @@
     .app-nav button{color:#c6c6bd}.app-nav button.active{background:var(--accent);color:var(--ink);font-weight:600}
     .app-signout{margin-top:16px;padding:10px 12px;border:1px solid #58594f;border-radius:10px;background:transparent;color:white}
     .app-topline,.workspace-header{gap:20px;flex-wrap:wrap}.app-topline>div:first-child,.workspace-header>div:first-child{flex:1 1 270px;min-width:0}
-    #app-dashboard .app-title,.wizard h2,.loading-card h2{font-size:clamp(32px,3.7vw,58px);font-weight:550;letter-spacing:-.06em;line-height:1.04}
+    #app-dashboard .app-title,.wizard h2{font-size:clamp(32px,3.7vw,58px);font-weight:550;letter-spacing:-.06em;line-height:1.04}
     .app-kicker,.app-subtitle,.wizard-copy,.progress-row{color:#56574e}.app-kicker{font-weight:650}
     #app-home .app-topline,#app-systems .app-topline,#app-community .app-topline{padding:clamp(20px,3vw,44px);border-radius:18px;background:var(--accent);margin-bottom:32px}
     #app-systems .app-topline{background:var(--theme-wash)}#app-community .app-topline{background:var(--accent)}
@@ -73,7 +73,6 @@
     .style-grid [data-style="Flat Design"] .option-icon::after{width:23px;height:23px;background:#25796f;border-radius:50% 0 0 0}
     .style-grid .option-card.selected{border-color:var(--theme-dark);background:var(--theme-wash)}
     .style-grid .check{z-index:1;background:var(--theme-dark)}
-    .loading-orbit{border:8px solid #d9ceff;border-top-color:#5b46b8;background:var(--theme-wash)}.game-board{border-radius:12px;background:var(--theme-wash)}
     @media(hover:hover){
       #app-dashboard .app-button:not(:disabled):hover{background:var(--theme-dark);border-color:var(--theme-dark);color:white}
       #app-dashboard .app-button.ghost:not(:disabled):hover,.app-nav button:not(.active):hover{background:var(--theme-wash);color:var(--ink)}
