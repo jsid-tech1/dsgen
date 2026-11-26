@@ -26,6 +26,7 @@
     ${iconRules}
     #app-dashboard{--canvas:#ffffff;--ink:#181915;--accent:var(--theme-accent);--line:#d9d8cd;background:var(--canvas);color:var(--ink)}
     .app-main{background:var(--canvas);min-width:0}.app-sidebar{background:#141512}.app-brand{font-size:28px;color:var(--accent)}
+    @media(min-width:1001px){.app-sidebar{position:relative}.app-brand{margin-bottom:60px}.sidebar-toggle{position:absolute;top:26px;right:20px;margin:0}.sidebar-collapsed .sidebar-toggle{right:20px}}
     .app-nav button,.app-signout,.mockup-toolbar [data-device]{display:inline-flex;align-items:center;gap:10px;min-height:44px}
     .app-nav button{color:#c6c6bd}.app-nav button.active{background:var(--accent);color:var(--ink);font-weight:600}
     @media(min-width:1001px){
@@ -48,6 +49,12 @@
     .sidebar-account{position:relative;margin-top:16px}.sidebar-account[hidden]{display:none}.sidebar-profile{width:100%;display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #58594f;border-radius:10px;background:transparent;color:white;text-align:left;cursor:pointer}
     .sidebar-avatar{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--accent);color:#141512;font-weight:650;overflow:hidden}.sidebar-avatar img{width:100%;height:100%;object-fit:cover}
     .sidebar-account-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.sidebar-account-menu{position:absolute;bottom:calc(100% + 8px);left:0;width:100%;padding:5px;background:#252621;border:1px solid #58594f;border-radius:10px;z-index:5}.sidebar-account-menu[hidden]{display:none}.sidebar-account-menu button{width:100%;padding:10px;border:0;border-radius:7px;background:transparent;color:#fff;text-align:left;cursor:pointer}.sidebar-account-menu button:hover{background:#393a34}
+    #app-workspace .swatches{gap:10px;flex-wrap:wrap}#app-workspace .swatch-edit{width:52px;height:auto;overflow:visible;border:0;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+    #app-workspace .swatch-edit input{height:42px;bottom:auto;z-index:1}#app-workspace .swatch-edit span:first-of-type{height:42px;border:1px solid var(--line);border-radius:8px}
+    #app-workspace .swatch-hex{width:100%;font:500 10px/1.3 ui-monospace,SFMono-Regular,monospace;color:#56574e;text-align:center;text-transform:uppercase}
+    #app-workspace .font-picker{position:relative;padding:0;border:0;background:transparent}#app-workspace .font-picker summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-weight:550}
+    #app-workspace .font-picker summary::-webkit-details-marker{display:none}#app-workspace .font-picker summary::after{content:'⌄';color:#56574e;font-size:18px;line-height:1}#app-workspace .font-picker[open] summary{border-color:var(--theme-dark)}
+    #app-workspace .font-picker>input,#app-workspace .font-picker>div{position:relative;z-index:2}#app-workspace .font-picker>input{margin:8px 0 0;border-radius:9px}#app-workspace .font-picker>div{padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 8px 24px #00000012}#app-workspace .font-picker>div button{font-size:12px;padding:8px 10px;min-height:34px}
     .app-topline,.workspace-header{gap:20px;flex-wrap:wrap}.app-topline>div:first-child,.workspace-header>div:first-child{flex:1 1 270px;min-width:0}
     #app-dashboard .app-title,.wizard h2{font-size:clamp(32px,3.7vw,58px);font-weight:550;letter-spacing:-.06em;line-height:1.04}
     .app-kicker,.app-subtitle,.wizard-copy,.progress-row{color:#56574e}.app-kicker{font-weight:650}
@@ -122,6 +129,16 @@
   sidebar.querySelectorAll('.app-nav button').forEach(button => {
     button.title = button.textContent.trim();
     button.setAttribute('aria-label', button.textContent.trim());
+  });
+
+  dashboard.querySelectorAll('#app-workspace .swatch-edit').forEach(label => {
+    const input = label.querySelector('input');
+    const hex = document.createElement('span');
+    hex.className = 'swatch-hex';
+    const updateHex = () => { hex.textContent = input.value; };
+    label.appendChild(hex);
+    updateHex();
+    input.addEventListener('input', updateHex);
   });
 
   if (localWorkspace) return;
