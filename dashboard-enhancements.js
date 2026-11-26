@@ -28,6 +28,19 @@
     .app-main{background:var(--canvas);min-width:0}.app-sidebar{background:#141512}.app-brand{font-size:28px;color:var(--accent)}
     .app-nav button,.app-signout,.mockup-toolbar [data-device]{display:inline-flex;align-items:center;gap:10px;min-height:44px}
     .app-nav button{color:#c6c6bd}.app-nav button.active{background:var(--accent);color:var(--ink);font-weight:600}
+    @media(min-width:1001px){
+      #app-dashboard.sidebar-collapsed .app-shell{grid-template-columns:76px minmax(0,1fr)}
+      #app-dashboard.sidebar-collapsed .app-sidebar{padding-inline:12px}
+      #app-dashboard.sidebar-collapsed .app-brand{font-size:0;margin:0 0 60px;text-align:center}
+      #app-dashboard.sidebar-collapsed .app-brand::after{content:"DS";font-size:20px;letter-spacing:-.08em}
+      #app-dashboard.sidebar-collapsed .app-nav button,#app-dashboard.sidebar-collapsed .app-signout{justify-content:center;font-size:0;gap:0}
+      #app-dashboard.sidebar-collapsed .app-nav button::before,#app-dashboard.sidebar-collapsed .app-signout::before{--icon-size:22px}
+      #app-dashboard.sidebar-collapsed .app-side-note{display:none}
+      #app-dashboard.sidebar-collapsed .sidebar-toggle{margin-inline:auto}
+    }
+    .sidebar-toggle{align-self:flex-end;display:grid;place-items:center;width:36px;height:36px;margin:-48px 0 52px;padding:0;border:0;border-radius:9px;background:transparent;color:#aaa;cursor:pointer}
+    .sidebar-toggle svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .sidebar-toggle:hover{background:#292a26}.sidebar-toggle:focus-visible{outline:3px solid #a797cf;outline-offset:2px}
     .app-signout{margin-top:16px;padding:10px 12px;border:1px solid #58594f;border-radius:10px;background:transparent;color:white}
     .app-topline,.workspace-header{gap:20px;flex-wrap:wrap}.app-topline>div:first-child,.workspace-header>div:first-child{flex:1 1 270px;min-width:0}
     #app-dashboard .app-title,.wizard h2{font-size:clamp(32px,3.7vw,58px);font-weight:550;letter-spacing:-.06em;line-height:1.04}
@@ -81,10 +94,29 @@
     .community-toolbar{margin-top:0}.community-filter.active{background:#29251e}.community-review-dialog{background:#ffffff}
     .system-title-icon{display:inline-flex;align-items:center;color:#55564e}.workspace-header{padding-bottom:20px;border-bottom:1px solid var(--line)}
     #app-dashboard :is(button,input,select,textarea):focus-visible{outline:3px solid #6654cf;outline-offset:2px}
-    @media(max-width:1000px){.app-sidebar{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px}.public-community .app-sidebar{display:none}.app-brand,.app-signout{margin:0}.app-nav{display:flex;flex-wrap:wrap;gap:4px}}
+    @media(max-width:1000px){.app-sidebar{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px}.public-community .app-sidebar{display:none}.app-brand,.app-signout{margin:0}.app-nav{display:flex;flex-wrap:wrap;gap:4px}.sidebar-toggle{display:none}}
     @media(max-width:650px){.app-sidebar{padding:14px 16px}.app-nav{order:3;width:100%;justify-content:space-between}.app-nav button{gap:4px;flex-direction:column;justify-content:center;flex:1;padding:6px 2px}.app-signout{margin-left:auto}.app-topline .app-button{margin-right:6px}.wizard-footer{gap:8px;flex-wrap:wrap}.wizard-footer .right-actions{flex-wrap:wrap}.style-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app-main{padding:24px 16px}.community-dialog-actions{flex-wrap:wrap}}
   `;
   document.head.appendChild(style);
+
+  const sidebar = dashboard.querySelector('.app-sidebar');
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'sidebar-toggle';
+  toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="2.5" width="19" height="19" rx="4"/><path d="M8.5 3v18"/></svg>';
+  const setCollapsed = (collapsed) => {
+    dashboard.classList.toggle('sidebar-collapsed', collapsed);
+    toggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+    toggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+  };
+  sidebar.insertBefore(toggle, sidebar.querySelector('.app-nav'));
+  setCollapsed(false);
+  toggle.addEventListener('click', () => setCollapsed(!dashboard.classList.contains('sidebar-collapsed')));
+  sidebar.querySelectorAll('.app-nav button').forEach(button => {
+    button.title = button.textContent.trim();
+    button.setAttribute('aria-label', button.textContent.trim());
+  });
 
   if (localWorkspace) return;
 

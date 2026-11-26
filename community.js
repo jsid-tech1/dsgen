@@ -15,6 +15,9 @@
     .system-card.saved-system{cursor:pointer;transition:background-color .18s ease,border-color .18s ease}
     .system-card.saved-system:hover{background-color:#faf9ff;border-color:#c9c1dc}
     .system-card.saved-system:focus-visible{outline:2px solid #a797cf;outline-offset:3px}
+    .system-card.community-gallery-card{cursor:pointer;transition:background-color .18s ease,border-color .18s ease}
+    .system-card.community-gallery-card:hover{background-color:#faf9ff;border-color:#c9c1dc}
+    .system-card.community-gallery-card:focus-visible{outline:2px solid #a797cf;outline-offset:3px}
     .system-title-button{display:inline-flex;align-items:center;gap:.3em;text-align:left;background:none;color:inherit;border:0;padding:0;font:inherit;letter-spacing:inherit;cursor:pointer;overflow-wrap:anywhere}
     .system-title-button:hover{text-decoration:underline;text-underline-offset:.12em}
     .system-title-icon{flex:none;font-size:.45em}
@@ -210,7 +213,10 @@
   }
 
   function makeGalleryCard(system) {
-    const card = make("article", "system-card");
+    const card = make("article", "system-card community-gallery-card");
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `View ${system.name}`);
     const preview = make("div", "community-preview");
     stylePreview(preview, system);
     const meta = make("div");
@@ -233,6 +239,11 @@
     card.append(preview, meta);
     card.addEventListener("click", (event) => {
       if (!event.target.closest("button")) withPending(view, "Opening…", () => openPublicSystem(system.id));
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.target !== card || !["Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      withPending(view, "Opening…", () => openPublicSystem(system.id));
     });
     return card;
   }
