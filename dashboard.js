@@ -621,9 +621,9 @@
     }
     root.classList.toggle('public-community', browsingCommunity && !workspace);
     root.style.display = workspace || browsingCommunity ? 'block' : 'none';
-    document.querySelector('header').style.display = workspace ? 'none' : '';
+    document.querySelector('header').style.display = workspace && !browsingCommunity ? 'none' : '';
     document.querySelector('main#top').style.display = workspace || browsingCommunity ? 'none' : '';
-    document.querySelector('body > footer').style.display = workspace ? 'none' : '';
+    document.querySelector('body > footer').style.display = workspace && !browsingCommunity ? 'none' : '';
 
     const name = (user?.displayName || '').split(' ')[0];
     root.querySelector('#user-name').textContent = name ? `, ${name}` : '';
